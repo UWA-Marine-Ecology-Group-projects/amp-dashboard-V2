@@ -7,11 +7,20 @@ library(tibble)
 library(shinybusy)
 library(shinyjs)
 library(viridisLite)
+library(shinycssloaders)
 
 # Load the data
 # dropdown_data <- read.csv(here::here("data/dropdowns.csv"), stringsAsFactors = FALSE)
 
 thematic::thematic_shiny()
+
+# TODO - add in zeros for leaflet maps
+# TODO - calculate TA, SR, CTI for raw data
+# TODO - Italic species names in the top ten plots
+# TODO - think about if the Depth range and Average depth is from the data or of the park
+# TODO - Add stereo-boss deployments to the stats
+# TODO - Add a method column in the gs for bruv or boss to calc the deploymnet numbers
+# TODO - make the species dropdown reactive (based on the species that are present in that park)
 
 # TODO - change the way that the habitat is plotted in the dropdowns - need one selectionfor each habitat type, because can't display them all on a map due to the prediction and error
 
@@ -32,7 +41,7 @@ dummy_points <- data.frame(
 )
 
 # Load data ----
-load("data/all_data.Rdata")
+load("data/app/all_data.Rdata")
 
 # Remove extra park ----
 networks_and_parks <- all_data$networks_and_parks %>%
@@ -91,3 +100,35 @@ style='width:30px;height:30px;'> Habitat imagery (BOSS)<br/>
 
 <img src='https://github.com/UWAMEGFisheries/UWAMEGFisheries.github.io/blob/master/images/markers/marker_purple.png?raw=true'
 style='width:30px;height:30px;'> 3D models"
+
+
+n <- 100
+data <- data.frame(
+  x = seq(1, n),
+  y = rpois(n, 100)
+)
+
+ggplot_theme <- 
+ggplot2::theme_bw() +
+  ggplot2::theme( # use theme_get() to see available options
+    panel.grid = ggplot2::element_blank(),
+    panel.border = ggplot2::element_blank(),
+    axis.line = ggplot2::element_line(colour = "black"),
+    panel.grid.major = ggplot2::element_blank(),
+    panel.grid.minor = ggplot2::element_blank(),
+    legend.background = ggplot2::element_blank(),
+    legend.key = ggplot2::element_blank(), # switch off the rectangle around symbols in the legend
+    legend.text = ggplot2::element_text(size = 12),
+    legend.title = ggplot2::element_blank(),
+    # legend.position = "top",
+    text = ggplot2::element_text(size = 12),
+    strip.text.y = ggplot2::element_text(size = 12, angle = 0),
+    axis.title.x = ggplot2::element_text(vjust = 0.3, size = 12),
+    axis.title.y = ggplot2::element_text(vjust = 0.6, angle = 90, size = 12),
+    axis.text.y = ggplot2::element_text(size = 12),
+    axis.text.x = ggplot2::element_text(size = 12, angle = 90, vjust = 0.5, hjust=1),
+    axis.line.x = ggplot2::element_line(colour = "black", size = 0.5, linetype = "solid"),
+    axis.line.y = ggplot2::element_line(colour = "black", size = 0.5, linetype = "solid"),
+    strip.background = ggplot2::element_blank(),
+    plot.title = ggplot2::element_text(color = "black", size = 12, face = "bold.italic")
+  )

@@ -5,10 +5,15 @@ library(stringr)
 
 # Read in files created in earlier scripts ----
 # Read in metadata ----
-metadata <- read_rds("data/metadata.rds")
+metadata <- read_rds("data/app/metadata.rds")
 
 # Read in raster data ----
-raster_data <- read_rds("data/raster_data.rds")
+raster_data <- read_rds("data/app/raster_data.rds")
+
+# Read in basic stats ----
+stats <- read_rds("data/app/stats.RDS")
+top_species <- read_rds("data/app/top_species.RDS")
+bubble_data <- read_rds("data/app/bubble_data.RDS")
 
 # Read in dropdown information ----
 dropdown_data <- read_sheet("https://docs.google.com/spreadsheets/d/1Iplohv6mM-CnpE6uYBi4uQnuhCyZMNpCRMSJFFnJxjM/edit?usp=sharing",
@@ -21,11 +26,11 @@ method_data <- read_sheet("https://docs.google.com/spreadsheets/d/1Iplohv6mM-Cnp
   dplyr::distinct(ecosystem_condition, method, network, marine_park_or_area)
 
 # Read in network information ----
-networks_and_parks <- read_csv("data/networks-and-parks.csv")
+networks_and_parks <- read_csv("data/app/networks-and-parks.csv")
 
-# Read in summary data (temp) ----
-summary_data <- read_sheet("https://docs.google.com/spreadsheets/d/1Iplohv6mM-CnpE6uYBi4uQnuhCyZMNpCRMSJFFnJxjM/edit?usp=sharing",
-                            sheet = "summary_data")
+# # Read in summary data (temp) ----
+# summary_data <- read_sheet("https://docs.google.com/spreadsheets/d/1Iplohv6mM-CnpE6uYBi4uQnuhCyZMNpCRMSJFFnJxjM/edit?usp=sharing",
+#                             sheet = "summary_data")
 
 # Read in data for text ----
 text_data <- read_sheet("https://docs.google.com/spreadsheets/d/1Iplohv6mM-CnpE6uYBi4uQnuhCyZMNpCRMSJFFnJxjM/edit?usp=sharing",
@@ -87,12 +92,15 @@ all_data <- structure(
     metadata = metadata,
     dropdown_data = dropdown_data,
     raster_data = raster_data,
-    summary_data = summary_data,
+    # summary_data = summary_data,
     text_data = text_data,
-    method_data = method_data
+    method_data = method_data,
+    stats = stats,
+    top_species = top_species,
+    bubble_data = bubble_data
   ),
   class = "data"
 )
 
 # Save ----
-save(all_data, file = here::here("data/all_data.Rdata"))
+save(all_data, file = here::here("data/app/all_data.Rdata"))

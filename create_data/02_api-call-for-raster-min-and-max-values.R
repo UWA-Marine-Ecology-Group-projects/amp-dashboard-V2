@@ -50,4 +50,4 @@ raster_data <- left_join(raster_raw, raster_min_max) %>%
   dplyr::filter(!is.na(min) | !is.na(max)) %>%
   glimpse
 
-saveRDS(raster_data, file = here::here("data/raster_data.RDS"))
+saveRDS(raster_data, file = here::here("data/app/raster_data.RDS"))

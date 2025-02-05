@@ -30,4 +30,4 @@ metadata <- temp_metadata %>%
                 longitude_dd = as.numeric(longitude_dd)) %>%
   dplyr::filter(!is.na(latitude_dd))
 
-saveRDS(metadata, file = here::here("data/metadata.RDS"))
+saveRDS(metadata, file = here::here("data/app/metadata.RDS"))
