@@ -962,21 +962,21 @@ server <- function(input, output, session) {
       
       req(input$marine_park)  # Ensure marine_park input is selected
       
-      data <- data %>%
+      data_filtered <- data %>%
         dplyr::filter(network %in% input$network) %>%
         dplyr::filter(marine_park %in% input$marine_park) %>%
         glimpse
       
     } else {
       
-      data <- data %>%
+      data_filtered <- data %>%
         dplyr::filter(network %in% input$network) %>%
         dplyr::filter(marine_park %in% paste(input$network, "Network")) %>%
         glimpse
       
     }
     
-    p <-   ggplot2::ggplot(data, ggplot2::aes(x = reorder(display_name, total_number), y = total_number)) +
+    p <-   ggplot2::ggplot(data_filtered, ggplot2::aes(x = reorder(display_name, total_number), y = total_number)) +
       ggplot2::geom_bar(stat = "identity", position = ggplot2::position_dodge()) +
       ggplot2::coord_flip() +
       ggplot2::xlab("Species") +
@@ -989,6 +989,45 @@ server <- function(input, output, session) {
     p
   })
   
+  # Create species dropdown ----
+  output$ui_species <- renderUI({
+    
+    data <- all_data$bubble_data
+    
+    if (input$toggle == "Marine Park") {
+      
+      req(input$marine_park)  # Ensure marine_park input is selected
+      
+      data <- data %>%
+        dplyr::filter(network %in% input$network) %>%
+        dplyr::filter(marine_park %in% input$marine_park) 
+      
+    } else {
+      
+      data <- data %>%
+        dplyr::filter(network %in% input$network) %>%
+        dplyr::filter(marine_park %in% paste(input$network, "Network")) 
+      
+    }
+    
+    choices <- data %>%
+      dplyr::group_by(display_name) %>%
+      dplyr::summarise(total_number = sum(count)) %>%
+      dplyr::arrange(desc(total_number)) %>%
+      dplyr::distinct(display_name) %>%
+      dplyr::pull("display_name")
+    
+    shinyWidgets::pickerInput(
+      inputId = "species",
+      label = "Choose a species to plot:",
+      width = "100%",
+      choices = choices,
+      multiple = FALSE,
+      selected = choices[1],
+      options = list(`actions-box` = TRUE, `live-search` = TRUE, `dropup-auto` = FALSE)
+    )
+  })
+  
   # Create species bubble plot ----
   output$species_map <- renderLeaflet({
     req(input$toggle, input$network, input$options)
@@ -996,11 +1035,43 @@ server <- function(input, output, session) {
     points <- metadata_filtered_data()
     
     data <- all_data$bubble_data %>%
-      dplyr::filter(display_name %in% input$species)
+      dplyr::filter(display_name %in% input$species) 
+    
+    metadata <- all_data$synthesis_metadata
+    
+    if (input$toggle == "Marine Park") {
+      
+      req(input$marine_park)  # Ensure marine_park input is selected
+      
+      data <- data %>%
+        dplyr::filter(network %in% input$network) %>%
+        dplyr::filter(marine_park %in% input$marine_park) 
+      
+      metadata <- metadata %>%
+        dplyr::filter(network %in% input$network) %>%
+        dplyr::filter(marine_park %in% input$marine_park) 
+      
+    } else {
+      
+      data <- data %>%
+        dplyr::filter(network %in% input$network) %>%
+        dplyr::filter(marine_park %in% paste(input$network, "Network")) 
+      
+      metadata <- metadata %>%
+        dplyr::filter(network %in% input$network) %>%
+        dplyr::filter(marine_park %in% paste(input$network, "Network")) 
+      
+    }
+    
+    message("combined data")
+    data <- full_join(data, metadata) %>%
+      replace_na(list(count = 0)) %>%
+      glimpse()
     
     overzero <- filter(data, count > 0)
+    
     equalzero <- filter(data, count == 0) # TODO add in zero counts for this to work properly
-    max <- max(data$count)
+    max_ab <- max(data$count)
     
     
     if (nrow(points) == 0) {
@@ -1046,19 +1117,24 @@ server <- function(input, output, session) {
       addLegend(pal = commonwealth.pal, values = commonwealth.mp$zone, opacity = 1,
                 title="Australian Marine Park Zones",
                 position = "bottomright", group = "Australian Marine Parks") %>%
-      # 
-      # add_legend_ta(
-      #         colors = c("black", "green", "green"),
-      #         labels = c(0, round(max.ta / 2), max.ta),
-      #         sizes = c(5, 20, 40), group = "Total abundance"
-      #       ) %>%
       
-      addLayersControl(
-        overlayGroups = c("Australian Marine Parks",
-                          "State Marine Parks"),
-        options = layersControlOptions(collapsed = FALSE),
-        position = "bottomright"
-      )  %>% 
+      add_legend(colors = c("white", "green", "green"),
+                 labels = c(0, round(max_ab / 2), max_ab),
+                 sizes = c(5, 20, 40),
+                 title = "Abundance", group = "abundance"
+      ) %>%
+    # add_legend_ta(
+    #         colors = c("black", "green", "green"),
+    #         labels = c(0, round(max.ta / 2), max.ta),
+    #         sizes = c(5, 20, 40), group = "Total abundance"
+    #       ) %>%
+    
+    addLayersControl(
+      overlayGroups = c("Australian Marine Parks",
+                        "State Marine Parks"),
+      options = layersControlOptions(collapsed = FALSE),
+      position = "bottomright"
+    )  %>% 
       hideGroup("State Marine Parks") %>%
       hideGroup("Australian Marine Parks")%>%
       hideGroup("FishNClips")

@@ -14,6 +14,7 @@ raster_data <- read_rds("data/app/raster_data.rds")
 stats <- read_rds("data/app/stats.RDS")
 top_species <- read_rds("data/app/top_species.RDS")
 bubble_data <- read_rds("data/app/bubble_data.RDS")
+synthesis_metadata <- read_rds("data/app/synthesis_metadata.RDS")
 
 # Read in dropdown information ----
 dropdown_data <- read_sheet("https://docs.google.com/spreadsheets/d/1Iplohv6mM-CnpE6uYBi4uQnuhCyZMNpCRMSJFFnJxjM/edit?usp=sharing",
@@ -97,7 +98,8 @@ all_data <- structure(
     method_data = method_data,
     stats = stats,
     top_species = top_species,
-    bubble_data = bubble_data
+    bubble_data = bubble_data,
+    synthesis_metadata = synthesis_metadata
   ),
   class = "data"
 )

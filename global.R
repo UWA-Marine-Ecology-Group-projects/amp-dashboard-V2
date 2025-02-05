@@ -8,6 +8,7 @@ library(shinybusy)
 library(shinyjs)
 library(viridisLite)
 library(shinycssloaders)
+library(tidyr)
 
 # Load the data
 # dropdown_data <- read.csv(here::here("data/dropdowns.csv"), stringsAsFactors = FALSE)
@@ -132,3 +133,24 @@ ggplot2::theme_bw() +
     strip.background = ggplot2::element_blank(),
     plot.title = ggplot2::element_text(color = "black", size = 12, face = "bold.italic")
   )
+
+add_legend <- function(map, colors, labels, sizes, opacity = 1, group, title) { #map, 
+  colorAdditions <- glue::glue(
+    "{colors}; border-radius: 50%; width:{sizes}px; height:{sizes}px"
+  )
+  labelAdditions <- glue::glue(
+    "<div style='display: inline-block; height: {sizes}px; ",
+    "margin-top: 4px;line-height: {sizes}px;'>{labels}</div>"
+  )
+  
+  return(
+    leaflet::addLegend(map,
+                       colors = colorAdditions,
+                       labels = labelAdditions,
+                       opacity = opacity,
+                       title = title,
+                       position = "topright",
+                       group = group
+    )
+  )
+}

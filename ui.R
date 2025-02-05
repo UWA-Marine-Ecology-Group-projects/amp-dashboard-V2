@@ -184,13 +184,13 @@ ui <- page_navbar(
             )
           ),
           
-          # MOST COMMON SPECIES ----
+          # MOST ABUNDANT SPECIES ----
           div(
             card(
               height = 615,
               
               card_header(
-                "Most common species"
+                "Most abundant species"
               ),
               
               # h5(HTML(paste0("Most common species:"))),
@@ -211,82 +211,93 @@ ui <- page_navbar(
                  border-radius: 5px;
                  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); /* optional shadow */
                }
-             "))
+               
+               .leaflet-container {z-index:0}
+               
+               .leaflet-top, .leaflet-bottom {
+    z-index: unset !important;
+}
+
+.leaflet-touch .leaflet-control-layers, .leaflet-touch .leaflet-bar {
+    z-index: 10000000000 !important;
+}"))
       ),
+
+# SPECIES DISTRIBUTION MAP ----
+div(
+  # card(
+  layout_column_wrap(
+    width = NULL, 
+    # height = 300, 
+    fill = FALSE,
+    style = css(grid_template_columns = "1fr 1fr"),
+    
+    # SUMMARY CARD ----
+    div(
+      card(
+        full_screen = TRUE, 
+        height = 600,
+        
+        card_header(
+          "Spatial distribution of assemblage metrics:"
+        ),
+        
+        selectInput(
+          inputId = "assemblage",
+          label = "Choose an assemblage metric",
+          choices = c("Total abundance", "Species richness", "Community Temperature Index"),
+          selected = "Total abundance",
+          width = "100%"
+        ),
+        
+        card(full_screen = FALSE, 
+             max_height = "100%",
+             id = "map-container",
+             # style = "position: sticky; top: 0; height: 100vh;",
+             style = "height: 85vh;",
+             leafletOutput("assemblage_map"
+             )
+        ))
+    ),
+    
+    
+    div(
       
-      # SPECIES DISTRIBUTION MAP ----
-      div(
-        # card(
-        layout_column_wrap(
-          width = NULL, 
-          # height = 300, 
-          fill = FALSE,
-          style = css(grid_template_columns = "1fr 1fr"),
-          
-          # SUMMARY CARD ----
-          div(
-            card(
-              full_screen = TRUE, 
-              height = 600,
-              
-              card_header(
-                "Spatial distribution of assemblage metrics:"
-              ),
-              
-              selectInput(
-                inputId = "assemblage",
-                label = "Choose an assemblage metric",
-                choices = c("Total abundance", "Species richness", "Community Temperature Index"),
-                selected = "Total abundance",
-                width = "100%"
-              ),
-              
-              card(full_screen = FALSE, 
-                   max_height = "100%",
-                   id = "map-container",
-                   # style = "position: sticky; top: 0; height: 100vh;",
-                   style = "height: 85vh;",
-                   leafletOutput("assemblage_map"
-                   )
-              ))
-          ),
-          
-          
-          div(
-            
-            card(
-              full_screen = TRUE, 
-              height = 600,
-              
-              card_header(
-                "Spatial distributions of species"
-              ),
-              
-              selectInput(
-                inputId = "species",
-                label = "Choose a species:",
-                choices = unique(all_data$bubble_data$display_name),
-                selected = unique(all_data$bubble_data$display_name)[1],
-                width = "100%"
-              ),
-              
-              card(full_screen = FALSE, 
-                   max_height = "100%",
-                   id = "map-container",
-                   # style = "position: sticky; top: 0; height: 100vh;",
-                   style = "height: 85vh;",
-                   leafletOutput("species_map"
-                   )
-              ))
-          ),
-      
-          
-          
-        )
-      ),
-      
-      tags$head(
-        tags$style(HTML("
+      card(
+        full_screen = TRUE, 
+        height = 600,
+        
+        card_header(
+          "Spatial distributions of species"
+        ),
+        
+        htmlOutput("ui_species"),
+        
+        # selectInput(
+        #   inputId = "species",
+        #   label = "Choose a species:",
+        #   choices = unique(all_data$bubble_data$display_name),
+        #   selected = unique(all_data$bubble_data$display_name)[1],
+        #   width = "100%"
+        # ),
+        
+        card(full_screen = FALSE, 
+             max_height = "100%",
+             id = "map-container",
+             # style = "position: sticky; top: 0; height: 100vh;",
+             style = "height: 85vh;",
+             leafletOutput("species_map"
+             )
+        ))
+    ),
+    
+    
+    
+  )
+),
+
+tags$head(
+  tags$style(HTML("
 
 
       .custom-button {
@@ -299,79 +310,79 @@ ui <- page_navbar(
         color: white !important;
       }
     ")) # 263F6B navy hover colour
+),
+
+
+# uiOutput("condition_plot_ui"),
+
+
+
+
+div(
+  card(
+    
+    card_header(
+      "Modelled outputs"
+    ),
+    
+    uiOutput("dynamic_options", width = "100%"),
+    
+    layout_column_wrap(
+      width = NULL, 
+      # height = 300, 
+      fill = FALSE,
+      style = css(grid_template_columns = "1fr 1fr"),
+      
+      div(
+        card(full_screen = TRUE, 
+             
+             # uiOutput("metric_name"),
+             uiOutput("temporal_plot_ui"))
+        
       ),
-    
-    
-    # uiOutput("condition_plot_ui"),
-    
-    
-    
-    
-    div(
-      card(
-        
-        card_header(
-          "Modelled outputs"
-        ),
-        
-        uiOutput("dynamic_options", width = "100%"),
-        
-        layout_column_wrap(
-          width = NULL, 
-          # height = 300, 
-          fill = FALSE,
-          style = css(grid_template_columns = "1fr 1fr"),
-          
-          div(
-            card(full_screen = TRUE, 
-              
-              # uiOutput("metric_name"),
-              uiOutput("temporal_plot_ui"))
-            
-          ),
-          
-          
-          div(
-            card(
-              full_screen = TRUE, 
-              max_height = "100%",
-              id = "map-container",
-              # style = "position: sticky; top: 0; height: 100vh;",
-              style = "height: 85vh;",
-              leafletOutput("australia_map"
-              ))),
-        ))),
-    
-    
-    # )
-    # ),
-    
+      
+      
+      div(
+        card(
+          full_screen = TRUE, 
+          max_height = "100%",
+          id = "map-container",
+          # style = "position: sticky; top: 0; height: 100vh;",
+          style = "height: 85vh;",
+          leafletOutput("australia_map"
+          ))),
+    ))),
+
+
+# )
+# ),
+
     )
   ),
-  nav_panel(
-    title = "FishNClips",
-    leafletOutput("fishnclips", height = "85%")),
-  
-  # nav_panel(
-  #   title = "Summary Statistics",
-  #   
-  #   # Conditional panels for name of the view ----
-  #   conditionalPanel(
-  #     condition = "input.toggle == 'Network'",
-  #     
-  #     uiOutput("network_name_2")#,
-  #     # uiOutput("ui_network")
-  #   ),
-  #   
-  #   conditionalPanel(
-  #     condition = "input.toggle == 'Marine Park'",
-  #     
-  #     uiOutput("marinepark_name_2")#,
-  #     # uiOutput("ui_marine_park")
-  #   ),
-  #   
-  # ),
-  
-  nav_item(input_dark_mode()),
-  nav_item(tags$img(src = "https://marineecology.io/images/meg_logo_and_title.png", height = "30px", style = "float: right;"))
+nav_panel(
+  title = "FishNClips",
+  leafletOutput("fishnclips", height = "85%")),
+
+# nav_panel(
+#   title = "Summary Statistics",
+#   
+#   # Conditional panels for name of the view ----
+#   conditionalPanel(
+#     condition = "input.toggle == 'Network'",
+#     
+#     uiOutput("network_name_2")#,
+#     # uiOutput("ui_network")
+#   ),
+#   
+#   conditionalPanel(
+#     condition = "input.toggle == 'Marine Park'",
+#     
+#     uiOutput("marinepark_name_2")#,
+#     # uiOutput("ui_marine_park")
+#   ),
+#   
+# ),
+
+nav_item(input_dark_mode()),
+nav_item(tags$img(src = "https://marineecology.io/images/meg_logo_and_title.png", height = "30px", style = "float: right;"))
 )

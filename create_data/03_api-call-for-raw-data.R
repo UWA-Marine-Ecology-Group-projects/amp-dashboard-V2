@@ -102,7 +102,13 @@ bubble_data <- count_combined %>%
 # Summarised data for temporal plots----
 # TODO come back to this
 
+# Metadata to add zeros=----
+
+synthesis_metadata <- metadata_combined %>%
+  left_join(synth_datasets)
+
 # Save dataframes for app ----
 saveRDS(stats, file = here::here("data/app/stats.RDS"))
 saveRDS(top_species, file = here::here("data/app/top_species.RDS"))
 saveRDS(bubble_data, file = here::here("data/app/bubble_data.RDS"))
+saveRDS(synthesis_metadata, file = here::here("data/app/synthesis_metadata.RDS"))
