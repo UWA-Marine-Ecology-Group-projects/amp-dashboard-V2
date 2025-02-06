@@ -20,7 +20,7 @@ ui <- page_navbar(
     ),
     
     #     # First radio button for selecting network
-    radioButtons("network", "Choose a Network:",
+    radioButtons("network", "Choose a Network/Bioregion:",
                  choices = c(unique(all_data$file_info$network)
                  ),
                  
@@ -106,11 +106,21 @@ ui <- page_navbar(
       
       layout_column_wrap(
         
-        selectInput(
+        # selectInput(
+        #   inputId = "metric",
+        #   label = "Ecosystem component:",
+        #   choices = unique(all_data$dropdown_data$metric),
+        #   selected = unique(all_data$dropdown_data$metric)[1]
+        # ),
+        
+        shinyWidgets::pickerInput(
           inputId = "metric",
-          label = "Ecosystem component:",
+          label = "Ecosystem component::",
+          width = "100%",
           choices = unique(all_data$dropdown_data$metric),
-          selected = unique(all_data$dropdown_data$metric)[1]
+          multiple = FALSE,
+          selected = unique(all_data$dropdown_data$metric)[1],
+          options = list(`actions-box` = TRUE, `live-search` = FALSE, `dropup-auto` = FALSE)
         ),
         
         uiOutput("dynamic_ecosystem_subcomponent"
@@ -223,76 +233,73 @@ ui <- page_navbar(
 }"))
       ),
 
+# ASSEMBLAGE SPATIAL ----
+div(
+  card(
+    full_screen = TRUE, 
+    height = 600,
+    
+    card_header(
+      "Spatial distribution of assemblage metrics:"
+    ),
+    
+    shinyWidgets::pickerInput(
+      inputId = "assemblage",
+      label = "Choose an assemblage metric:",
+      width = "100%",
+      choices = c("Total abundance", "Species richness"#, "Community Temperature Index"
+                  ),
+      multiple = FALSE,
+      selected = "Total abundance",
+      options = list(`actions-box` = TRUE, `live-search` = FALSE, `dropup-auto` = FALSE)
+    ),
+    
+    card(full_screen = FALSE, 
+         max_height = "100%",
+         id = "map-container",
+         # style = "position: sticky; top: 0; height: 100vh;",
+         style = "height: 85vh;",
+         leafletOutput("assemblage_map"
+         )
+    ))
+),
+
 # SPECIES DISTRIBUTION MAP ----
 div(
-  # card(
-  layout_column_wrap(
-    width = NULL, 
-    # height = 300, 
-    fill = FALSE,
-    style = css(grid_template_columns = "1fr 1fr"),
+  card(
+    full_screen = TRUE, 
+    height = 600,
     
-    # SUMMARY CARD ----
-    div(
-      card(
-        full_screen = TRUE, 
-        height = 600,
-        
-        card_header(
-          "Spatial distribution of assemblage metrics:"
-        ),
-        
-        selectInput(
-          inputId = "assemblage",
-          label = "Choose an assemblage metric",
-          choices = c("Total abundance", "Species richness", "Community Temperature Index"),
-          selected = "Total abundance",
-          width = "100%"
-        ),
-        
-        card(full_screen = FALSE, 
-             max_height = "100%",
-             id = "map-container",
-             # style = "position: sticky; top: 0; height: 100vh;",
-             style = "height: 85vh;",
-             leafletOutput("assemblage_map"
-             )
-        ))
+    card_header(
+      "Investigate a species"
     ),
     
+    htmlOutput("ui_species"),
     
-    div(
+    # layout_column_wrap(
+    #   width = NULL, 
+    #   # max_height = 400, 
+    #   fill = FALSE,
+    #   style = css(grid_template_columns = "1fr 1fr"),
+      
+    layout_column_wrap(width = 1/2,
+      card(full_screen = FALSE, 
+           max_height = "100%",
+           width = "50%",
+           id = "map-container",
+           # style = "position: sticky; top: 0; height: 100vh;",
+           # style = "height: 85vh;",
+           leafletOutput("species_map"
+           )
+      ),
       
       card(
-        full_screen = TRUE, 
-        height = 600,
-        
-        card_header(
-          "Spatial distributions of species"
-        ),
-        
-        htmlOutput("ui_species"),
-        
-        # selectInput(
-        #   inputId = "species",
-        #   label = "Choose a species:",
-        #   choices = unique(all_data$bubble_data$display_name),
-        #   selected = unique(all_data$bubble_data$display_name)[1],
-        #   width = "100%"
-        # ),
-        
-        card(full_screen = FALSE, 
-             max_height = "100%",
-             id = "map-container",
-             # style = "position: sticky; top: 0; height: 100vh;",
-             style = "height: 85vh;",
-             leafletOutput("species_map"
-             )
-        ))
-    ),
-    
-    
-    
+        full_screen = FALSE, 
+        max_height = "100%",
+        width = "50%",
+        plotOutput("species_temporal")
+      ))
+    # ),
   )
 ),
 
@@ -311,11 +318,6 @@ tags$head(
       }
     ")) # 263F6B navy hover colour
 ),
-
-
-# uiOutput("condition_plot_ui"),
-
-
 
 
 div(

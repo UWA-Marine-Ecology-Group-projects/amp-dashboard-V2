@@ -9,6 +9,9 @@ library(shinyjs)
 library(viridisLite)
 library(shinycssloaders)
 library(tidyr)
+library(stringr)
+library(ggplot2)
+library(patchwork)
 
 # Load the data
 # dropdown_data <- read.csv(here::here("data/dropdowns.csv"), stringsAsFactors = FALSE)

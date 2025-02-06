@@ -16,13 +16,24 @@ server <- function(input, output, session) {
   output$dynamic_ecosystem_subcomponent <- renderUI({
     req(input$metric)
     components <- unique(all_data$dropdown_data$ecosystem_component[all_data$dropdown_data$metric == input$metric])
-    selectInput(
+    
+    shinyWidgets::pickerInput(
       inputId = "ecosystemsubcomponent",
       label = "Ecosystem sub-component:",
+      width = "100%",
       choices = components,
+      multiple = FALSE,
       selected = components[1],
-      width = "100%"
+      options = list(`actions-box` = TRUE, `live-search` = FALSE, `dropup-auto` = FALSE)
     )
+    
+    # selectInput(
+    #   inputId = "ecosystemsubcomponent",
+    #   label = "Ecosystem sub-component:",
+    #   choices = components,
+    #   selected = components[1],
+    #   width = "100%"
+    # )
   })
   
   output$dynamic_options <- renderUI({
@@ -90,7 +101,7 @@ server <- function(input, output, session) {
       dplyr::pull(marine_park)
     
     radioButtons("marine_park",
-                 "Marine Park:",
+                 "Marine Park/Sentinel Area:",
                  choices = parks)
   })
   
@@ -860,10 +871,10 @@ server <- function(input, output, session) {
         class = "custom-button btn btn-default action-button",
         style = "font-weight:600"),
       target = "_blank",
-      href = paste0("https://dev.globalarchive.org/ui/main/syntheses/",
+      href = paste0("https://dev.globalarchive.org/ui/main/syntheses/"),
                     style = "width: 100%; display: block; text-align: center; background-color: #f8f9fa; padding: 10px; border-radius: 5px;"
                     # ,input$slider # could put synthesis ID here
-      )
+      
     )
   })
   
@@ -897,7 +908,7 @@ server <- function(input, output, session) {
     }
     
     # Extract methods
-    methods <- unique(unlist(strsplit(data$method, ", "))) %>% glimpse()
+    methods <- unique(unlist(strsplit(data$method, ", "))) #%>% glimpse()
     
     # Dynamically create buttons for each method
     buttons <- list()
@@ -1019,7 +1030,7 @@ server <- function(input, output, session) {
     
     shinyWidgets::pickerInput(
       inputId = "species",
-      label = "Choose a species to plot:",
+      label = "Choose a species:",
       width = "100%",
       choices = choices,
       multiple = FALSE,
@@ -1065,12 +1076,12 @@ server <- function(input, output, session) {
     
     message("combined data")
     data <- full_join(data, metadata) %>%
-      replace_na(list(count = 0)) %>%
-      glimpse()
+      replace_na(list(count = 0)) #%>%
+      #glimpse()
     
     overzero <- filter(data, count > 0)
     
-    equalzero <- filter(data, count == 0) # TODO add in zero counts for this to work properly
+    equalzero <- filter(data, count == 0) 
     max_ab <- max(data$count)
     
     
@@ -1167,14 +1178,34 @@ server <- function(input, output, session) {
     
     points <- metadata_filtered_data()
     
-    if (nrow(points) == 0) {
-      points <- tibble(
-        latitude_dd = c(-25.0, -25.1),
-        longitude_dd = c(133.0, 133.1)
-      )
+    #message("view chosen assemblage metric")
+    
+    assemblage_metric <- tolower(str_replace_all(input$assemblage, " ", "_")) #%>%
+      #glimpse()
+    
+    data <- all_data$metric_bubble_data %>%
+      dplyr::filter(metric %in% assemblage_metric)
+    
+    if (input$toggle == "Marine Park") {
+      
+      req(input$marine_park)  # Ensure marine_park input is selected
+      
+      data <- data %>%
+        dplyr::filter(network %in% input$network) %>%
+        dplyr::filter(marine_park %in% input$marine_park) 
+      
+    } else {
+      
+      data <- data %>%
+        dplyr::filter(network %in% input$network) %>%
+        dplyr::filter(marine_park %in% paste(input$network, "Network")) 
+      
     }
     
-    map.dat <- dat
+    overzero <- filter(data, value > 0)
+    
+    equalzero <- filter(data, value == 0)
+    max_ab <- max(data$value)
     
     
     # Initial Leaflet map ----
@@ -1212,6 +1243,13 @@ server <- function(input, output, session) {
                 title="Australian Marine Park Zones",
                 position = "bottomright", group = "Australian Marine Parks") %>%
       
+      add_legend(colors = c("white", "green", "green"),
+                 labels = c(0, round(max_ab / 2), max_ab),
+                 sizes = c(5, 20, 40),
+                 title = input$assemblage, 
+                 group = "abundance"
+      ) %>%
+      
       
       addLayersControl(
         overlayGroups = c("Australian Marine Parks",
@@ -1223,6 +1261,136 @@ server <- function(input, output, session) {
       hideGroup("Australian Marine Parks")%>%
       hideGroup("FishNClips")
     
+    if (nrow(overzero)) {
+      map <- map %>%
+        addCircleMarkers(
+          data = overzero, lat = ~latitude_dd, lng = ~longitude_dd,
+          radius = ~ (((value / max(value)) * 20)), fillOpacity = 0.5, stroke = FALSE,
+          label = ~ as.character(value), color = "green"
+        )
+    }
+    
+    if (nrow(equalzero)) {
+      map <- map %>%
+        addCircleMarkers(
+          data = equalzero, lat = ~latitude_dd, lng = ~longitude_dd,
+          radius = 2, fillOpacity = 0.5, color = "white", stroke = FALSE,
+          label = ~ as.character(value)
+        )
+    }
+    
+    map
+    
+  })
+  
+  
+  # Species specific temporal plots ----
+  output$species_temporal <- renderPlot({
+    req(input$toggle, input$network, input$options)
+    
+    data <- all_data$temporal_data %>%
+      dplyr::filter(display_name %in% input$species) %>%
+      dplyr::mutate(year = substr(date_midpoint, 1, 4)) %>%
+      dplyr::mutate(year = as.numeric(year))
+    
+    if (input$toggle == "Marine Park") {
+      
+      req(input$marine_park)  # Ensure marine_park input is selected
+      
+      data <- data %>%
+        dplyr::filter(network %in% input$network) %>%
+        dplyr::filter(marine_park %in% input$marine_park) 
+      
+    } else {
+      
+      data <- data %>%
+        dplyr::filter(network %in% input$network) %>%
+        dplyr::filter(marine_park %in% paste(input$network, "Network")) 
+      
+    }
+  
+  
+  # Get unique depth classes
+  depth_classes <- unique(data$depth_class)
+  
+  # Create a list to store plots for each depth class
+  depth_plots <- list()
+  
+  # Loop through each depth class
+  for (depth in depth_classes) {
+    # Filter data for the current depth class
+    depth_data <- data %>% filter(depth_class == depth)
+    
+    # Create the plot for the current depth class
+    p <- ggplot2::ggplot(depth_data, aes(x = year, 
+                                y = average_abundance, 
+                                fill = zone, 
+                                group = zone, 
+                                shape = zone, 
+                                col = zone)) +
+      # geom_errorbar(aes(ymin = average_abundance - se, ymax = average_abundance + se), width = 0.02) +
+      geom_point(size = 3,
+                 stroke = 0.2, 
+                 color = "black", 
+                 alpha = 0.8, 
+                 shape = 21) +
+      geom_line() +
+      geom_vline(xintercept = 2018, linetype = "dashed", color = "black") +
+      scale_color_manual(values = c(
+        "Multiple Use Zone" = "#b9e6fb",
+        "Habitat Protection Zone" = "#fff8a3",
+        "National Park Zone" = "#7bbc63",
+        "Special Purpose Zone" = "#6BB1E5",
+        "Sanctuary Zone" = "#bfd054",
+        "Other Zones" = "#bddde1"
+      ), name = "Australian Marine Parks") +
+      scale_fill_manual(values = c(
+        "Multiple Use Zone" = "#b9e6fb",
+        "Habitat Protection Zone" = "#fff8a3",
+        "National Park Zone" = "#7bbc63",
+        "Special Purpose Zone" = "#6BB1E5",
+        "Sanctuary Zone" = "#bfd054",
+        "Other Zones" = "#bddde1"
+      ), name = "Australian Marine Parks") +
+      labs(
+        x = "Year",
+        y = "Abundance",
+        color = "Australian Marine Parks",
+        title = paste("Depth:", depth)
+      ) +
+      labs(x = "Year", y = str_wrap(unique(depth_data$metric), 30)) +
+      theme_bw() +
+      theme(#axis.title.y = element_blank(), # Remove y-axis labels for individual plots
+        legend.position = "top",      # Suppress individual legends
+        axis.title = element_text(size = 16), # Larger axis titles
+        axis.text = element_text(size = 14), # Larger axis text
+        legend.title = element_text(size = 16), # Larger legend title
+        legend.text = element_text(size = 14), # Larger legend text
+        plot.title = element_text(size = 18, face = "italic"), # Larger plot title
+        strip.text = element_text(size = 16), # Larger facet strip text
+        axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank())
+    
+    depth_plots[[depth]] <- p
+  }
+  
+  
+  # Combine all depth plots into a single stacked plot
+  combined_plot <- wrap_plots(depth_plots, ncol = 1)
+  
+  final_plot <- combined_plot #+
+    #plot_layout(guides = "collect") #+ # Collect legends into one
+    # theme(
+    #   legend.position = "top", # Position legend at the bottom
+    #   legend.title = element_text(size = 16),
+    #   legend.text = element_text(size = 14)#,
+    #   # axis.title.y = element_text(size = 16)
+    # )
+  
+  final_plot
   })
   
   # End of server ----
