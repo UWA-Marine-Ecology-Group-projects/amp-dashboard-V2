@@ -505,7 +505,7 @@ server <- function(input, output, session) {
                  popupOptions=c(closeButton = TRUE, minWidth = 0,maxWidth = 700)
       )%>%
       
-      addControl(html = html_legend, position = "bottomleft", className = "fishnclips-legend") %>%
+      addControl(html = html_legend, position = "bottomleft", className = "fishnclips-legend-aus") %>%
       
       addLayersControl(
         # baseGroups = c("OSM (default)", "World Imagery (satellite)"),
@@ -603,11 +603,22 @@ server <- function(input, output, session) {
     input$australia_map_groups
     shinyjs::runjs(sprintf("
       var isVisible = %s.includes('FishNClips');
-      var legend = document.querySelector('.fishnclips-legend');
+      var legend = document.querySelector('.fishnclips-legend-aus');
       if (legend) {
         legend.style.display = isVisible ? 'block' : 'none';
       }
     ", jsonlite::toJSON(input$australia_map_groups)))
+  })
+  
+  observe({
+    input$map_groups
+    shinyjs::runjs(sprintf("
+      var isVisible = %s.includes('FishNClips');
+      var legend = document.querySelector('.fishnclips-legend-map');
+      if (legend) {
+        legend.style.display = isVisible ? 'block' : 'none';
+      }
+    ", jsonlite::toJSON(input$map_groups)))
   })
   
   
@@ -1391,6 +1402,182 @@ server <- function(input, output, session) {
     # )
   
   final_plot
+  })
+  
+  
+  # Create first map for Dashboard ----
+  output$map <- renderLeaflet({
+    req(input$toggle, input$network, input$options)
+    
+    points <- metadata_filtered_data()
+    
+    if (nrow(points) == 0) {
+      points <- tibble(
+        latitude_dd = c(-25.0, -25.1),
+        longitude_dd = c(133.0, 133.1)
+      )
+    }
+  
+    icon <- iconList(blue = makeIcon("images/marker_blue.png", iconWidth = 40, iconHeight =40))
+    
+    map.dat <- dat
+    
+    boss.habitat.highlights.popups <- filter(map.dat, source %in% c("boss.habitat.highlights"))
+    bruv.habitat.highlights.popups <- filter(map.dat, source %in% c("bruv.habitat.highlights"))
+    fish.highlights.popups <- filter(map.dat, source %in% c("fish.highlights"))
+    threed.model.popups <- filter(map.dat, source %in% c("3d.model"))
+    image.popups <- filter(map.dat, source %in% c('image'))
+    
+    # Having this in the global.R script breaks now - make icons on server side
+    icon.bruv.habitat <- iconList(blue = makeIcon("images/marker_green.png", iconWidth = 40, iconHeight =40))
+    icon.boss.habitat <- iconList(blue = makeIcon("images/marker_pink.png", iconWidth = 40, iconHeight =40))
+    icon.fish <- iconList(blue = makeIcon("images/marker_yellow.png", iconWidth = 40, iconHeight =40))
+    icon.models <- iconList(blue = makeIcon("images/marker_purple.png", iconWidth = 40, iconHeight =40))
+    
+    # Initial Leaflet map ----
+    map <- leaflet(points) %>%
+      addTiles() %>%
+      # addProviderTiles(providers$Esri.WorldImagery, group = "World Imagery (satellite)") %>%
+      #addMarkers(~longitude_dd, ~latitude_dd, group = "Sampling locations") %>%
+      
+      addMarkers(data = points, ~longitude_dd, ~latitude_dd,
+                 icon = icon,
+                 # popup = bruv.habitat.highlights.popups$popup,
+                 clusterOptions = markerClusterOptions(iconCreateFunction =
+                                                         JS("
+                                          function(cluster) {
+                                             return new L.DivIcon({
+                                               html: '<div style=\"background-color:rgba(0, 123, 255, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
+                                               className: 'marker-cluster'
+                                             });
+                                           }")),
+                 group = "Sampling locations"#,
+                 #popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700)
+      )%>%
+      
+      
+      fitBounds(
+        lng1 = min(points$longitude_dd), lat1 = min(points$latitude_dd),
+        lng2 = max(points$longitude_dd), lat2 = max(points$latitude_dd)
+      ) %>%
+      
+      # Ngari Capes Marine Parks
+      addPolygons(data = ngari.mp, weight = 1, color = "black",
+                  fillOpacity = 0.8, fillColor = "#7bbc63",
+                  group = "State Marine Parks", label=ngari.mp$Name) %>%
+      
+      # State Marine Parks
+      addPolygons(data = state.mp, weight = 1, color = "black",
+                  fillOpacity = 0.8, fillColor = ~state.pal(zone),
+                  group = "State Marine Parks", label=state.mp$COMMENTS) %>%
+      
+      # Add a legend
+      addLegend(pal = state.pal, values = state.mp$zone, opacity = 1,
+                title="State Zones",
+                position = "bottomright", group = "State Marine Parks") %>%
+      
+      # Commonwealth Marine Parks
+      addPolygons(data = commonwealth.mp, weight = 1, color = "black",
+                  fillOpacity = 0.8, fillColor = ~commonwealth.pal(zone),
+                  group = "Australian Marine Parks", label=commonwealth.mp$ZoneName) %>%
+      
+      # Add a legend
+      addLegend(pal = commonwealth.pal, values = commonwealth.mp$zone, opacity = 1,
+                title="Australian Marine Park Zones",
+                position = "bottomright", group = "Australian Marine Parks") %>%
+      
+      # stereo-BRUV habitat videos
+      addMarkers(data=bruv.habitat.highlights.popups,
+                 icon = icon.bruv.habitat,
+                 popup = bruv.habitat.highlights.popups$popup,
+                 #label = bruv.habitat.highlights.popups$sample,
+                 clusterOptions = markerClusterOptions(iconCreateFunction =
+                                                         JS("
+                                          function(cluster) {
+                                             return new L.DivIcon({
+                                               html: '<div style=\"background-color:rgba(124, 248, 193, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
+                                               className: 'marker-cluster'
+                                             });
+                                           }")),
+                 group = "FishNClips",
+                 popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
+      
+      # BOSS habitat videos
+      addMarkers(data=boss.habitat.highlights.popups,
+                 icon = icon.boss.habitat,
+                 popup = boss.habitat.highlights.popups$popup,
+                 #label = boss.habitat.highlights.popups$sample,
+                 clusterOptions = markerClusterOptions(iconCreateFunction =
+                                                         JS("
+                                          function(cluster) {
+                                             return new L.DivIcon({
+                                               html: '<div style=\"background-color:rgba(248, 124, 179, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
+                                               className: 'marker-cluster'
+                                             });
+                                           }")),
+                 group = "FishNClips",
+                 popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
+      
+      # stereo-BRUV fish videos
+      addMarkers(data=fish.highlights.popups,
+                 icon = icon.fish,
+                 popup = fish.highlights.popups$popup,
+                 clusterOptions = markerClusterOptions(iconCreateFunction =
+                                                         JS("
+                                          function(cluster) {
+                                             return new L.DivIcon({
+                                               html: '<div style=\"background-color:rgba(241, 248, 124,0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
+                                               className: 'marker-cluster'
+                                             });
+                                           }")),
+                 group = "FishNClips",
+                 popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
+      
+      # 3D models
+      addMarkers(data=threed.model.popups,
+                 icon = icon.models,
+                 popup = threed.model.popups$popup,
+                 clusterOptions = markerClusterOptions(iconCreateFunction =
+                                                         JS("
+                                          function(cluster) {
+                                             return new L.DivIcon({
+                                               html: '<div style=\"background-color:rgba(131, 124, 248,0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
+                                               className: 'marker-cluster'
+                                             });
+                                           }")),
+                 group = "FishNClips",
+                 popupOptions=c(closeButton = TRUE, minWidth = 0,maxWidth = 700)
+      )%>%
+      
+      addControl(html = html_legend, position = "bottomleft", className = "fishnclips-legend-map") %>%
+      
+      addLayersControl(
+        # baseGroups = c("OSM (default)", "World Imagery (satellite)"),
+        overlayGroups = c("Australian Marine Parks",
+                          "State Marine Parks",
+                          "Sampling locations",
+                          "FishNClips"),
+        options = layersControlOptions(collapsed = FALSE),
+        position = "bottomright"
+      )  %>% # Ensure "Predicted" is hidden initially
+      hideGroup("State Marine Parks") %>%
+      hideGroup("Australian Marine Parks")%>%
+      hideGroup("FishNClips")
+  })
+  
+  # Create species iframe
+  output$iframe <- renderUI({
+    
+    dat <- all_data$foa_codes[display_name %in% c(input$species)] %>%
+      dplyr::distinct(url) %>%
+      dplyr::pull("url")
+    
+    frame <- tags$iframe(src = paste0(dat),
+                         style = "width: 100%; height: 100vh; border: none;",
+                         onload = "resizeIframe(this)"
+    )
+    frame
+    
   })
   
   # End of server ----

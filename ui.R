@@ -147,8 +147,6 @@ ui <- page_navbar(
                 "Summary"
               ),
               
-              # h5(HTML(paste0("Summary:"))),
-              
               layout_column_wrap(
                 width = 1/3, height = 110,
                 
@@ -189,24 +187,27 @@ ui <- page_navbar(
                 "Trend"
               ),
               
-              # h5(HTML(paste0("Trends:"))),
               uiOutput("dynamic_text")
             )
           ),
           
-          # MOST ABUNDANT SPECIES ----
           div(
             card(
+              full_screen = TRUE, 
               height = 615,
               
               card_header(
-                "Most abundant species"
+                "Map"
               ),
               
-              # h5(HTML(paste0("Most common species:"))),
-              withSpinner(
-                plotOutput("top_ten_plot", height = 520
-                )
+              
+              layout_column_wrap(width = 1,
+                                 card(full_screen = FALSE, 
+                                      max_height = "100%",
+                                      width = "50%",
+                                      id = "map-container",
+                                      leafletOutput("map")
+                                 )
               )
             )
           )
@@ -215,11 +216,20 @@ ui <- page_navbar(
       
       tags$head(
         tags$style(HTML("
-               .fishnclips-legend {
+               .fishnclips-legend-aus {
                  background-color: rgba(255, 255, 255, 0.8); /* white background with transparency */
                  padding: 10px;
                  border-radius: 5px;
                  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); /* optional shadow */
+               font: 14px / 16px Arial, Helvetica, sans-serif;
+               }
+               
+                       .fishnclips-legend-map {
+                 background-color: rgba(255, 255, 255, 0.8); /* white background with transparency */
+                 padding: 10px;
+                 border-radius: 5px;
+                 box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); /* optional shadow */
+               font: 14px / 16px Arial, Helvetica, sans-serif;
                }
                
                .leaflet-container {z-index:0}
@@ -233,42 +243,92 @@ ui <- page_navbar(
 }"))
       ),
 
-# ASSEMBLAGE SPATIAL ----
 div(
-  card(
-    full_screen = TRUE, 
-    height = 600,
+  # card(
+  layout_column_wrap(
+    width = NULL, 
+    # height = 300, 
+    fill = FALSE,
+    style = css(grid_template_columns = "1fr 1fr"),
     
-    card_header(
-      "Spatial distribution of assemblage metrics:"
+    
+    
+    # MOST ABUNDANT SPECIES ----
+    div(
+      card(
+        height = 615,
+        
+        card_header(
+          "Most abundant species"
+        ),
+        
+        # h5(HTML(paste0("Most common species:"))),
+        withSpinner(
+          plotOutput("top_ten_plot", height = 520
+          )
+        )
+      )
     ),
     
-    shinyWidgets::pickerInput(
-      inputId = "assemblage",
-      label = "Choose an assemblage metric:",
-      width = "100%",
-      choices = c("Total abundance", "Species richness"#, "Community Temperature Index"
-                  ),
-      multiple = FALSE,
-      selected = "Total abundance",
-      options = list(`actions-box` = TRUE, `live-search` = FALSE, `dropup-auto` = FALSE)
-    ),
     
-    card(full_screen = FALSE, 
-         max_height = "100%",
-         id = "map-container",
-         # style = "position: sticky; top: 0; height: 100vh;",
-         style = "height: 85vh;",
-         leafletOutput("assemblage_map"
-         )
-    ))
-),
+    # ASSEMBLAGE SPATIAL ----
+    div(
+      card(
+        full_screen = TRUE, 
+        height = 615,
+        
+        card_header(
+          "Spatial distribution of assemblage metrics:"
+        ),
+        
+        shinyWidgets::pickerInput(
+          inputId = "assemblage",
+          label = "Choose an assemblage metric:",
+          width = "100%",
+          choices = c("Total abundance", "Species richness"#, "Community Temperature Index"
+          ),
+          multiple = FALSE,
+          selected = "Total abundance",
+          options = list(`actions-box` = TRUE, `live-search` = FALSE, `dropup-auto` = FALSE)
+        ),
+        
+        card(full_screen = FALSE, 
+             max_height = "100%",
+             id = "map-container",
+             # style = "position: sticky; top: 0; height: 100vh;",
+             style = "height: 85vh;",
+             leafletOutput("assemblage_map"
+             )
+        ))
+    ))),
+
+# tags$head(
+#   tags$style(HTML("
+#       .iframe-container {
+#         width: 100%;
+#         overflow: hidden;
+#       }
+#       .iframe-container iframe {
+#         width: 125%;
+#         transform: scale(0.75); /* Adjust the scale value */
+#         transform-origin: top left;
+#       overflow: hidden;
+#       }
+#     "))
+# ),
+
+tags$head(
+  tags$script(HTML("
+      function resizeIframe(obj) {
+        obj.style.height = obj.contentWindow.document.documentElement.scrollHeight + 'px';
+      }
+    "))),
 
 # SPECIES DISTRIBUTION MAP ----
 div(
   card(
     full_screen = TRUE, 
-    height = 600,
+    height = 800,
     
     card_header(
       "Investigate a species"
@@ -281,24 +341,34 @@ div(
     #   # max_height = 400, 
     #   fill = FALSE,
     #   style = css(grid_template_columns = "1fr 1fr"),
-      
+    
     layout_column_wrap(width = 1/2,
-      card(full_screen = FALSE, 
-           max_height = "100%",
-           width = "50%",
-           id = "map-container",
-           # style = "position: sticky; top: 0; height: 100vh;",
-           # style = "height: 85vh;",
-           leafletOutput("species_map"
-           )
-      ),
-      
-      card(
-        full_screen = FALSE, 
-        max_height = "100%",
-        width = "50%",
-        plotOutput("species_temporal")
-      ))
+                       card(full_screen = FALSE, 
+                            max_height = "100%",
+                            width = "50%",
+                            id = "map-container",
+                            # style = "position: sticky; top: 0; height: 100vh;",
+                            # style = "height: 85vh;",
+                            leafletOutput("species_map"
+                            )
+                       ),
+                       
+
+    
+    div(#class = "wrap", 
+        class = "iframe-container", 
+        card(
+          min_height = "615",
+          max_height = "630",
+          max_width = "100%",
+          htmlOutput("iframe", height = "100%"))
+        # card(
+        #   full_screen = FALSE, 
+        #   max_height = "100%",
+        #   width = "50%",
+        #   plotOutput("species_temporal")
+        # )
+    ))
     # ),
   )
 ),

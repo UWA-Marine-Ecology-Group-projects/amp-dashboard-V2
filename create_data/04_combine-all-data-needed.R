@@ -23,6 +23,16 @@ dropdown_data <- read_sheet("https://docs.google.com/spreadsheets/d/1Iplohv6mM-C
                    sheet = "dropdowns")
 2
 
+dbca_googlesheet_url <- "https://docs.google.com/spreadsheets/d/1OuOt80TvJBCMPLR6oy7YhfoSD4VjC73cuKovGobxiyI/edit?usp=sharing"
+
+foa_codes <- googlesheets4::read_sheet(dbca_googlesheet_url, sheet = "fishes_of_australia") %>%
+  CheckEM::clean_names() %>%
+  dplyr::select(-c(number)) %>%
+  dplyr::mutate(scientific_name = paste(genus, species, sep = " ")) %>%
+  dplyr::left_join(CheckEM::australia_life_history) %>%
+  dplyr::mutate(display_name = paste0(scientific_name, " (", australian_common_name, ")")) %>%
+  dplyr::select(display_name, url)
+
 # Get method data source----
 method_data <- read_sheet("https://docs.google.com/spreadsheets/d/1Iplohv6mM-CnpE6uYBi4uQnuhCyZMNpCRMSJFFnJxjM/edit?usp=sharing",
                           sheet = "simplified_dummy_data") %>%
@@ -85,6 +95,8 @@ temporal_file_info <- do.call(rbind, lapply(rds_files, function(f) {
   dplyr::mutate(file = stringr::str_replace_all(file, "inst/shiny/amp-dashboard/",""))
 
 
+foa_codes <- data.table::data.table(foa_codes)
+
 # Combine all information together -----
 
 all_data <- structure(
@@ -103,10 +115,12 @@ all_data <- structure(
     bubble_data = bubble_data,
     metric_bubble_data = metric_bubble_data,
     synthesis_metadata = synthesis_metadata,
-    temporal_data = temporal_data
+    temporal_data = temporal_data,
+    foa_codes = foa_codes
   ),
   class = "data"
 )
 
 # Save ----
 save(all_data, file = here::here("data/app/all_data.Rdata"))
+

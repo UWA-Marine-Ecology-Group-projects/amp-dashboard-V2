@@ -12,19 +12,17 @@ library(tidyr)
 library(stringr)
 library(ggplot2)
 library(patchwork)
+library(data.table)
 
 # Load the data
 # dropdown_data <- read.csv(here::here("data/dropdowns.csv"), stringsAsFactors = FALSE)
 
 thematic::thematic_shiny()
 
-# TODO - add in zeros for leaflet maps
-# TODO - calculate TA, SR, CTI for raw data
 # TODO - Italic species names in the top ten plots
 # TODO - think about if the Depth range and Average depth is from the data or of the park
 # TODO - Add stereo-boss deployments to the stats
 # TODO - Add a method column in the gs for bruv or boss to calc the deploymnet numbers
-# TODO - make the species dropdown reactive (based on the species that are present in that park)
 
 # TODO - change the way that the habitat is plotted in the dropdowns - need one selectionfor each habitat type, because can't display them all on a map due to the prediction and error
 
@@ -91,7 +89,7 @@ commonwealth.pal <- colorFactor(c("#f6c1d9", # Sanctuary
 # <div style='width: auto; height: 45px'> <div style='position: relative; display: inline-block; width: 36px; height: 45px' <img src='images/marker_red.png'> </div> <p style='position: relative; top: 15px; display: inline-block; ' > BRUV </p> </div>
 # <div style='width: auto; height: 45px'> <div style='position: relative; display: inline-block; width: 36px; height: 45px' <img src='images/marker_red.png'> </div> <p style='position: relative; top: 15px; display: inline-block; ' > BRUV </p> </div>"
 
-html_legend <- "<div style='padding: 10px; padding-bottom: 10px;'><h4 style='padding-top:0; padding-bottom:10px; margin: 0;'> Marker Legend </h4><br/>
+html_legend <- "<div style='padding: 0px; padding-bottom: 0px;'><b style='padding-top:0; padding-bottom:10px; margin: 0;'> Marker Legend </b><br/>
 
 <img src='https://github.com/UWAMEGFisheries/UWAMEGFisheries.github.io/blob/master/images/markers/marker_yellow.png?raw=true'
 style='width:30px;height:30px;'> Fish highlights <br/>
