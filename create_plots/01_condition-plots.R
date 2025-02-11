@@ -234,10 +234,10 @@ create_plots <- function(data, output_dir = "plots/") {
            plot = plot, width = 10, height = plot_height, units = "in", dpi = 300)
 
     # Save the plot as RDS
-    saveRDS(plot, file = paste0("plots/condition", tidy_ecosystem, "/", file_prefix, ".rds"))
+    saveRDS(plot, file = paste0("plots/condition/", tidy_ecosystem, "/", file_prefix, ".rds"))
 
     # Save the plot as PNG
-    ggsave(filename = paste0("plots/condition", tidy_ecosystem, "/", file_prefix, ".png"),
+    ggsave(filename = paste0("plots/condition/", tidy_ecosystem, "/", file_prefix, ".png"),
            plot = plot, width = 10, height = plot_height, units = "in", dpi = 300)
   }
 }
@@ -250,4 +250,4 @@ library(googlesheets4)
 data <- read_sheet("https://docs.google.com/spreadsheets/d/1Iplohv6mM-CnpE6uYBi4uQnuhCyZMNpCRMSJFFnJxjM/edit?usp=sharing",
                    sheet = "simplified_dummy_data")
 
-create_plots(data, output_dir = "inst/shiny/amp-dashboard/plots/condition/")
+create_plots(data, output_dir = "plots/condition/")
