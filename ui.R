@@ -181,6 +181,9 @@ ui <- page_navbar(
                       
                       div(
                         page_fillable(
+                          
+                          uiOutput("map_year_slider"),
+                          
                         card(
                           full_screen = FALSE,
                           max_height = 665,

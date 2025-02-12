@@ -779,7 +779,7 @@ server <- function(input, output, session) {
     )
   })
   
-
+  
   
   output$species_map <- renderLeaflet({
     
@@ -815,7 +815,7 @@ server <- function(input, output, session) {
       
     }
     
-    message("combined data")
+    # message("combined data")
     data <- full_join(data, metadata) %>%
       replace_na(list(count = 0)) %>%
       dplyr::mutate(year = str_sub(date_time, 1, 4)) 
@@ -829,7 +829,6 @@ server <- function(input, output, session) {
     
     overzero <- filter(data, count > 0)
     equalzero <- filter(data, count == 0)
-    
     
     leaflet() %>%
       addTiles() %>%
@@ -912,7 +911,7 @@ server <- function(input, output, session) {
       
       max_ab <- ifelse(nrow(data) > 0, max(data$count, na.rm = TRUE), 1)  # Avoid errors
       
-      message("combined data")
+      # message("combined data")
       data <- full_join(data, metadata) %>%
         replace_na(list(count = 0)) %>%
         dplyr::mutate(year = str_sub(date_time, 1, 4)) %>%
@@ -921,7 +920,6 @@ server <- function(input, output, session) {
       
       overzero <- filter(data, count > 0)
       equalzero <- filter(data, count == 0)
-     
       
       leafletProxy("species_map") %>%
         clearMarkers() %>%
@@ -966,12 +964,26 @@ server <- function(input, output, session) {
   
   
   output$species_year_slider <- renderUI({
-  
+    
     # Extract unique years from the dataset
     available_years <- sort(unique(as.numeric(year_data()$year)))
     
     sliderTextInput(
       inputId = "year",
+      label = "Choose a year:",
+      choices = available_years,
+      grid = TRUE,
+      width = "100%"
+    )
+  })
+  
+  output$map_year_slider <- renderUI({
+    
+    # Extract unique years from the dataset
+    available_years <- sort(unique(as.numeric(year_data()$year)))
+    
+    sliderTextInput(
+      inputId = "map_year",
       label = "Choose a year:",
       choices = available_years,
       grid = TRUE,
@@ -995,14 +1007,10 @@ server <- function(input, output, session) {
   
   # Create assemblage bubble plot ----
   output$assemblage_map <- renderLeaflet({
-    # req(input$toggle, input$network, input$options)
     
-    points <- metadata_filtered_data()
+    # points <- metadata_filtered_data()
     
-    #message("view chosen assemblage metric")
-    
-    assemblage_metric <- tolower(str_replace_all(input$assemblage, " ", "_")) #%>%
-    #glimpse()
+    assemblage_metric <- tolower(str_replace_all(input$assemblage, " ", "_"))
     
     data <- all_data$metric_bubble_data %>%
       dplyr::filter(metric %in% assemblage_metric)
@@ -1023,20 +1031,27 @@ server <- function(input, output, session) {
       
     }
     
-    overzero <- filter(data, value > 0)
+    max_ab <- ifelse(nrow(data) > 0, max(data$value, na.rm = TRUE), 1)  # Avoid errors
     
-    equalzero <- filter(data, value == 0)
-    max_ab <- max(data$value)
+    min_year <- min(data$year)
     
+    # message("glimpse data")
+    
+    data <- data %>%
+      dplyr::filter(year %in% as.numeric(min_year)) #%>%
+    #glimpse()
+    
+    overzero <- filter(data, value  > 0)
+    equalzero <- filter(data, value  %in% 0) #%>%
+      # glimpse()
     
     # Initial Leaflet map ----
-    map <- leaflet(points) %>%
+    map <- leaflet(data) %>%
       addTiles() %>%
-      # addProviderTiles(providers$Esri.WorldImagery, group = "World Imagery (satellite)") %>%
       
       fitBounds(
-        lng1 = min(points$longitude_dd), lat1 = min(points$latitude_dd),
-        lng2 = max(points$longitude_dd), lat2 = max(points$latitude_dd)
+        lng1 = min(data$longitude_dd), lat1 = min(data$latitude_dd),
+        lng2 = max(data$longitude_dd), lat2 = max(data$latitude_dd)
       ) %>%
       
       # Ngari Capes Marine Parks
@@ -1064,14 +1079,6 @@ server <- function(input, output, session) {
                 title="Australian Marine Park Zones",
                 position = "bottomright", group = "Australian Marine Parks") %>%
       
-      add_legend(colors = c("white", "green", "green"),
-                 labels = c(0, round(max_ab / 2), max_ab),
-                 sizes = c(5, 20, 40),
-                 title = input$assemblage,
-                 group = "abundance"
-      ) %>%
-      
-      
       addLayersControl(
         overlayGroups = c("Australian Marine Parks",
                           "State Marine Parks"),
@@ -1080,13 +1087,22 @@ server <- function(input, output, session) {
       )  %>%
       hideGroup("State Marine Parks") %>%
       hideGroup("Australian Marine Parks")%>%
-      hideGroup("FishNClips")
+      hideGroup("FishNClips" )%>%
+      add_legend(colors = c("white", "green", "green"),
+                 labels = c(0, round(max_ab / 2), max_ab),
+                 sizes = c(5, 20, 40),
+                 title = input$assemblage,
+                 group = "abundance"
+      ) 
+    
+    
+    
     
     if (nrow(overzero)) {
       map <- map %>%
         addCircleMarkers(
           data = overzero, lat = ~latitude_dd, lng = ~longitude_dd,
-          radius = ~ (((value / max(value)) * 20)), fillOpacity = 0.5, stroke = FALSE,
+          radius = ~ (((value / max_ab) * 20)), fillOpacity = 0.5, stroke = FALSE,
           label = ~ as.character(value), color = "green"
         )
     }
@@ -1102,6 +1118,77 @@ server <- function(input, output, session) {
     
     map
     
+  })
+  
+  observeEvent(input$assemblage, {
+    observeEvent(input$assemblage_year, {
+      
+      # points <- metadata_filtered_data()
+      
+      assemblage_metric <- tolower(str_replace_all(input$assemblage, " ", "_"))
+      
+      data <- all_data$metric_bubble_data %>%
+        dplyr::filter(metric %in% assemblage_metric)
+      
+      if (input$toggle == "Marine Park") {
+        
+        req(input$marine_park)  # Ensure marine_park input is selected
+        
+        data <- data %>%
+          dplyr::filter(network %in% input$network) %>%
+          dplyr::filter(marine_park %in% input$marine_park)
+        
+      } else {
+        
+        data <- data %>%
+          dplyr::filter(network %in% input$network) %>%
+          dplyr::filter(marine_park %in% paste(input$network, "Network"))
+        
+      }
+      
+      max_ab <- ifelse(nrow(data) > 0, max(data$value, na.rm = TRUE), 1)  # Avoid errors
+      
+      data <- data %>%
+        dplyr::filter(year %in% input$assemblage_year)
+      
+      overzero <- filter(data, value > 0)
+      equalzero <- filter(data, value == 0)
+      
+      map <- leafletProxy("assemblage_map") %>%
+        clearMarkers()
+      
+      if (nrow(overzero)) {
+        map <- map %>%
+          addCircleMarkers(
+            data = overzero, lat = ~latitude_dd, lng = ~longitude_dd,
+            radius = ~ (((value / max_ab) * 20)), fillOpacity = 0.5, stroke = FALSE,
+            label = ~ as.character(value), color = "green"
+          )
+      }
+      
+      if (nrow(equalzero)) {
+        map <- map %>%
+          addCircleMarkers(
+            data = equalzero, lat = ~latitude_dd, lng = ~longitude_dd,
+            radius = 2, fillOpacity = 0.5, color = "white", stroke = FALSE,
+            label = ~ as.character(value)
+          )
+      }
+      
+      # %>%
+      #   clearMarkers() %>%
+      #   addCircleMarkers(
+      #     data = overzero, lat = ~latitude_dd, lng = ~longitude_dd,
+      #     radius = ~ (((count / max_ab) * 20)), fillOpacity = 0.5, stroke = FALSE,
+      #     label = ~ as.character(count), color = "green"
+      #   ) %>%
+      #   addCircleMarkers(
+      #     data = equalzero, lat = ~latitude_dd, lng = ~longitude_dd,
+      #     radius = 2, fillOpacity = 0.5, color = "white", stroke = FALSE,
+      #     label = ~ as.character(count)
+      #   )
+      
+    })
   })
   
   
@@ -1216,9 +1303,14 @@ server <- function(input, output, session) {
   
   # Create first map for Dashboard ----
   output$map <- renderLeaflet({
-    # req(input$toggle, input$network, input$options)
     
-    points <- metadata_filtered_data()
+    points <- metadata_filtered_data() %>%
+      dplyr::mutate(year = str_sub(date_time, 1, 4))
+    
+    min_year <- min(points$year)
+    
+    points <- points %>%
+      dplyr::filter(year %in% min_year)
     
     if (nrow(points) == 0) {
       points <- tibble(
@@ -1246,12 +1338,9 @@ server <- function(input, output, session) {
     # Initial Leaflet map ----
     map <- leaflet(points) %>%
       addTiles() %>%
-      # addProviderTiles(providers$Esri.WorldImagery, group = "World Imagery (satellite)") %>%
-      #addMarkers(~longitude_dd, ~latitude_dd, group = "Sampling locations") %>%
       
       addMarkers(data = points, ~longitude_dd, ~latitude_dd,
                  icon = icon,
-                 # popup = bruv.habitat.highlights.popups$popup,
                  clusterOptions = markerClusterOptions(iconCreateFunction =
                                                          JS("
                                           function(cluster) {
@@ -1260,8 +1349,7 @@ server <- function(input, output, session) {
                                                className: 'marker-cluster'
                                              });
                                            }")),
-                 group = "Sampling locations"#,
-                 #popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700)
+                 group = "Sampling locations"
       )%>%
       
       
@@ -1374,6 +1462,34 @@ server <- function(input, output, session) {
       hideGroup("FishNClips")
   })
   
+  observeEvent(input$map_year, {
+    
+    data <- all_data$synthesis_metadata %>%
+      dplyr::mutate(year = as.numeric(str_sub(date_time, 1, 4))) %>%
+      dplyr::filter(year %in% as.numeric(input$map_year)) %>%
+      glimpse()
+    
+    icon <- iconList(blue = makeIcon("images/marker_blue.png", iconWidth = 40, iconHeight =40))
+    
+    map <- leafletProxy("map") %>%
+      clearMarkers() %>%
+      clearGroup(group = "Sampling locations") %>%
+      addMarkers(data = data, ~longitude_dd, ~latitude_dd,
+                 icon = icon,
+                 clusterOptions = markerClusterOptions(iconCreateFunction =
+                                                         JS("
+                                          function(cluster) {
+                                             return new L.DivIcon({
+                                               html: '<div style=\"background-color:rgba(0, 123, 255, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
+                                               className: 'marker-cluster'
+                                             });
+                                           }")),
+                 group = "Sampling locations")
+    
+    map
+    
+  })
+  
   # Create species iframe
   output$iframe <- renderUI({
     
@@ -1424,12 +1540,8 @@ server <- function(input, output, session) {
     # Initial Leaflet map ----
     map <- leaflet(points) %>%
       addTiles() %>%
-      # addProviderTiles(providers$Esri.WorldImagery, group = "World Imagery (satellite)") %>%
-      #addMarkers(~longitude_dd, ~latitude_dd, group = "Sampling locations") %>%
-      
       addMarkers(data = points, ~longitude_dd, ~latitude_dd,
                  icon = icon,
-                 # popup = bruv.habitat.highlights.popups$popup,
                  clusterOptions = markerClusterOptions(iconCreateFunction =
                                                          JS("
                                           function(cluster) {
@@ -1438,10 +1550,8 @@ server <- function(input, output, session) {
                                                className: 'marker-cluster'
                                              });
                                            }")),
-                 group = "Sampling locations"#,
-                 #popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700)
+                 group = "Sampling locations"
       )%>%
-      
       
       fitBounds(
         lng1 = min(points$longitude_dd), lat1 = min(points$latitude_dd),

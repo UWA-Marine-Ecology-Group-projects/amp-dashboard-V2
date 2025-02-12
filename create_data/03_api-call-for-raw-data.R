@@ -121,13 +121,13 @@ metric_bubble_data <- count_combined %>%
   pivot_longer(!c(synthesis_id, sample_url), names_to = "metric", values_to = "value") %>%
   dplyr::left_join(metadata_combined) %>%
   left_join(synth_datasets) %>%
+  dplyr::mutate(year = as.numeric(str_sub(date_time, 1, 4))) %>%
+  dplyr::ungroup() %>%
   glimpse()
+
+names(metric_bubble_data)
   
 # Summarised data for temporal plots----
-# TODO come back to this
-
-
-
 # 1. Convert metadata_combined to an sf object (assuming lat/lon in WGS84)
 metadata_sf <- metadata_combined %>%
   st_as_sf(coords = c("longitude_dd", "latitude_dd"), crs = 4326)  # EPSG:4326 for WGS84
