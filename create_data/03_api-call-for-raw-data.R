@@ -53,6 +53,11 @@ for(synthesis_id in unique(synth_datasets$synthesis_id)){
 metadata_combined <- metadata_temp %>%
   dplyr::glimpse()
 
+# Calculate campaign mid points to get date
+campaign_dates <- metadata_combined %>%
+  dplyr::group_by(synthesis_id, campaignid) %>%
+  dplyr::summarise(date_midpoint = mean(date_time))
+
 count_combined <- count_temp %>%
   dplyr::glimpse()
 
@@ -95,10 +100,12 @@ top_species <- count_combined %>%
 bubble_data <- count_combined %>%
   dplyr::left_join(metadata_combined) %>%
   dplyr::left_join(CheckEM::australia_life_history) %>%
-  dplyr::select(synthesis_id, family, genus, species, count, longitude_dd, latitude_dd, date_time, depth_m, status, successful_count, scientific_name, australian_common_name) %>%
+  dplyr::select(synthesis_id, sample_url, family, genus, species, count, scientific_name, australian_common_name) %>%
   dplyr::mutate(display_name = paste0(scientific_name, " (", australian_common_name, ")")) %>%
   left_join(synth_datasets) %>%
   dplyr::glimpse()
+
+names(bubble_data)
 
 metric_bubble_data <- count_combined %>%
   dplyr::left_join(metadata_combined) %>%
@@ -120,10 +127,6 @@ metric_bubble_data <- count_combined %>%
 # TODO come back to this
 
 
-# Calculate campaign mid points to get date
-campaign_dates <- metadata_combined %>%
-  dplyr::group_by(synthesis_id, campaignid) %>%
-  dplyr::summarise(date_midpoint = mean(date_time))
 
 # 1. Convert metadata_combined to an sf object (assuming lat/lon in WGS84)
 metadata_sf <- metadata_combined %>%
@@ -154,7 +157,6 @@ species_per_synthesis <- count_combined %>%
 # Get all unique samples (each sample belongs to only one synthesis)
 samples_per_synthesis <- metadata_with_zone %>%
   dplyr::distinct(synthesis_id, sample_url)
-
 
 # Expand to ensure every sample in a synthesis gets all species observed in that synthesis
 temporal_data <- samples_per_synthesis %>%

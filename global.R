@@ -13,6 +13,8 @@ library(stringr)
 library(ggplot2)
 library(patchwork)
 library(data.table)
+library(leaflet.extras2)
+library(shinyWidgets)
 
 # Load the data
 # dropdown_data <- read.csv(here::here("data/dropdowns.csv"), stringsAsFactors = FALSE)
@@ -44,22 +46,6 @@ dummy_points <- data.frame(
 
 # Load data ----
 load("data/app/all_data.Rdata")
-
-# Remove extra park ----
-networks_and_parks <- all_data$networks_and_parks %>%
-  dplyr::filter(!park %in% "Coral Sea") %>% # the Coral Sea does not have parks within it
-  dplyr::filter(network %in% c("South-west", "North-west")) %>% # temp filter for north and south WA
-  dplyr::filter(park %in% c("Dampier", # temp filter for parks we have data for
-                            "Ningaloo",
-                            "Abrolhos",
-                            "Geographe",
-                            "South-west Corner")) %>%
-  dplyr::glimpse()
-
-# Create dummy list
-south_west <- networks_and_parks %>%
-  dplyr::filter(network %in% "South-west") %>%
-  dplyr::pull(park)
 
 # FISHNCLIPS
 dat <- readRDS("data/fishnclips/dat.RDS") %>%

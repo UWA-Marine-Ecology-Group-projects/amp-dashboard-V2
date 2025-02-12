@@ -39,7 +39,7 @@ method_data <- read_sheet("https://docs.google.com/spreadsheets/d/1Iplohv6mM-Cnp
   dplyr::distinct(ecosystem_condition, method, network, marine_park_or_area)
 
 # Read in network information ----
-networks_and_parks <- read_csv("data/app/networks-and-parks.csv")
+# networks_and_parks <- read_csv("data/app/networks-and-parks.csv")
 
 # # Read in summary data (temp) ----
 # summary_data <- read_sheet("https://docs.google.com/spreadsheets/d/1Iplohv6mM-CnpE6uYBi4uQnuhCyZMNpCRMSJFFnJxjM/edit?usp=sharing",
@@ -101,7 +101,7 @@ foa_codes <- data.table::data.table(foa_codes)
 
 all_data <- structure(
   list(
-    networks_and_parks = networks_and_parks,
+    # networks_and_parks = networks_and_parks,
     file_info = file_info,
     temporal_file_info = temporal_file_info,
     metadata = metadata,
