@@ -15,6 +15,9 @@ library(patchwork)
 library(data.table)
 library(leaflet.extras2)
 library(shinyWidgets)
+library(ggforce)
+# library(RGraphics)
+library(ggimage) # for adding icons
 
 # Load the data
 # dropdown_data <- read.csv(here::here("data/dropdowns.csv"), stringsAsFactors = FALSE)

@@ -76,13 +76,17 @@ server <- function(input, output, session) {
   output$dynamic_marine_park <- renderUI({
     # req(input$toggle, input$network)
     
-    selected_network <- input$network
+    message("chosen network")
+    selected_network <- input$network %>% glimpse
+    
+    message("parks")
     
     parks <- all_data$file_info %>%
       dplyr::filter(network == selected_network) %>%
       dplyr::distinct(marine_park) %>%
       # dplyr::filter(!marine_park %in% c("Abrolhos Marine Park")) %>% # TODO remove this once abrolhos data is in
       dplyr::filter(!marine_park %in% c("South-west Network", "North-west Network")) %>%
+      glimpse() %>%
       dplyr::pull(marine_park)
     
     radioButtons("marine_park",

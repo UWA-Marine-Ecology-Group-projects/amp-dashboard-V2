@@ -23,14 +23,26 @@ dropdown_data <- read_sheet("https://docs.google.com/spreadsheets/d/1Iplohv6mM-C
                    sheet = "dropdowns")
 2
 
+# Fishes of Australia codes ----
+
 dbca_googlesheet_url <- "https://docs.google.com/spreadsheets/d/1OuOt80TvJBCMPLR6oy7YhfoSD4VjC73cuKovGobxiyI/edit?usp=sharing"
 
-foa_codes <- googlesheets4::read_sheet(dbca_googlesheet_url, sheet = "fishes_of_australia") %>%
+foa_species_codes <- googlesheets4::read_sheet(dbca_googlesheet_url, sheet = "fishes_of_australia") %>%
   CheckEM::clean_names() %>%
   dplyr::select(-c(number)) %>%
   dplyr::mutate(scientific_name = paste(genus, species, sep = " ")) %>%
   dplyr::left_join(CheckEM::australia_life_history) %>%
   dplyr::mutate(display_name = paste0(scientific_name, " (", australian_common_name, ")")) %>%
+  dplyr::select(display_name, url)
+
+foa_genus_codes <- readRDS("data/app/genus_foa_codes.RDS") %>%
+  dplyr::mutate(species = "spp") %>%
+  dplyr::mutate(scientific_name = paste(genus, species, sep = " ")) %>%
+  dplyr::left_join(CheckEM::australia_life_history) %>%
+  dplyr::mutate(display_name = paste0(scientific_name, " (", australian_common_name, ")")) %>%
+  dplyr::select(display_name, url)
+
+foa_codes <- bind_rows(foa_species_codes, foa_genus_codes) %>%
   dplyr::select(display_name, url)
 
 # Get method data source----
@@ -70,7 +82,8 @@ file_info <- do.call(rbind, lapply(rds_files, function(f) {
   data.frame(file = f, network = info$network, marine_park = info$marine_park, metric = info$metric, years = info$years,
              stringsAsFactors = FALSE)
 })) %>%
-  dplyr::mutate(file = stringr::str_replace_all(file, "inst/shiny/amp-dashboard/",""))
+  dplyr::mutate(file = stringr::str_replace_all(file, "inst/shiny/amp-dashboard/","")) %>%
+  dplyr::filter(marine_park %in% c("Geographe Marine Park", "Ningaloo Marine Park"))
 
 # read in temporal plot information ----
 # For the temporal plots

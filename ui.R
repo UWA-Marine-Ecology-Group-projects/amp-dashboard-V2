@@ -15,7 +15,8 @@ ui <- page_navbar(
     radioButtons(
       inputId = "toggle",
       label = "Investigate:",
-      choices = c("Network", "Marine Park"),
+      choices = c("Network/Bioregion" = "Network", 
+                  "Marine Park" = "Marine Park"),
       selected = "Marine Park"
     ),
     
@@ -172,7 +173,7 @@ ui <- page_navbar(
                           full_screen = TRUE,
                           
                           card_header(
-                            "Trend"
+                            "Observations"
                           ),
                           
                           uiOutput("dynamic_text")
