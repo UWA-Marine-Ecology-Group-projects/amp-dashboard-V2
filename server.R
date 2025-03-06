@@ -81,7 +81,7 @@ server <- function(input, output, session) {
     
     message("parks")
     
-    parks <- all_data$file_info %>%
+    parks <- all_data$synthesis_metadata %>%
       dplyr::filter(network == selected_network) %>%
       dplyr::distinct(marine_park) %>%
       # dplyr::filter(!marine_park %in% c("Abrolhos Marine Park")) %>% # TODO remove this once abrolhos data is in
@@ -99,7 +99,7 @@ server <- function(input, output, session) {
   observeEvent(input$network, {
     selected_network <- input$network
     
-    parks <- all_data$file_info %>%
+    parks <- all_data$synthesis_metadata %>%
       dplyr::filter(network == selected_network) %>%
       dplyr::distinct(marine_park) %>%
       dplyr::filter(!marine_park %in% c("South-west Network", "North-west Network")) %>%
@@ -138,8 +138,10 @@ server <- function(input, output, session) {
   output$condition_plot_ui <- renderUI({
     req(condition_filtered_data())
     
-    chosen_plot <- condition_filtered_data()
-    validate(need(nrow(chosen_plot) > 0, "No condition data available for the selected filters."))
+    message("view chosen plot")
+    
+    chosen_plot <- condition_filtered_data() %>% glimpse
+    # validate(need(nrow(chosen_plot) > 0, "No condition data available for the selected filters."))
     plotOutput("condition_plot", height = condition_plot_height())
   })
   
@@ -607,6 +609,29 @@ server <- function(input, output, session) {
   # Link to Global Archive Synthesis ----
   # TODO link this with GA when Nik has created links
   output$ui_open_ga_button <- renderUI({
+    
+    data <- all_data$synthesis_metadata
+    
+    if (input$toggle == "Marine Park") {
+      req(input$marine_park)  # Ensure marine_park input is selected
+      
+      # message("view conditional data marine park")
+      
+      data <- data %>%
+        dplyr::filter(network %in% input$network) %>%
+        dplyr::filter(marine_park %in% input$marine_park)
+    } else {
+      
+      # message("view conditional data network")
+      
+      data <- data %>%
+        dplyr::filter(network %in% input$network) %>%
+        dplyr::filter(marine_park %in% paste(input$network, "Network"))
+    }
+    
+    synthesis_id <- unique(data$synthesis_id)
+    
+    
     shiny::a(
       h4(#icon("th"),
         icon("globe"), # Changed icon to "globe"
@@ -614,7 +639,7 @@ server <- function(input, output, session) {
         class = "custom-button btn btn-default action-button",
         style = "font-weight:600"),
       target = "_blank",
-      href = paste0("https://dev.globalarchive.org/ui/main/syntheses/"),
+      href = paste0("https://dev.globalarchive.org/ui/main/syntheses/", synthesis_id),
       style = "width: 100%; display: block; text-align: center; background-color: #f8f9fa; padding: 10px; border-radius: 5px;"
       # ,input$slider # could put synthesis ID here
       

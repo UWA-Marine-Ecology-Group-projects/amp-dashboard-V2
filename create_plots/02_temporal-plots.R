@@ -209,7 +209,7 @@ for (i in seq_len(nrow(combinations))) {
   )
 
   saveRDS(final_plot, file = paste0("plots/temporal/", file_prefix, ".rds"))
-  saveRDS(final_plot, file = paste0("inst/shiny/amp-dashboard/plots/temporal/", file_prefix, ".rds"))
+  # saveRDS(final_plot, file = paste0("inst/shiny/amp-dashboard/plots/temporal/", file_prefix, ".rds"))
 #
 #   # Save the plot as RDS
 #   saveRDS(final_plot, file = paste0("plots/temporal/", file_prefix, ".rds"))

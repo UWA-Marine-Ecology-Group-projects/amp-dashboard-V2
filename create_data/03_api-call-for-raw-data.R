@@ -150,6 +150,8 @@ metadata_with_zone <- st_join(metadata_sf, marine_parks, left = TRUE) %>%
     right = FALSE  # Ensures 30 is included in "30-70", etc.
   ))
 
+names(metadata_with_zone) %>% sort()
+
 # Get all unique species within each synthesis
 species_per_synthesis <- count_combined %>%
   dplyr::distinct(synthesis_id, family, genus, species)
@@ -184,6 +186,8 @@ temporal_data <- samples_per_synthesis %>%
 
 synthesis_metadata <- metadata_combined %>%
   left_join(synth_datasets)
+
+unique(synthesis_metadata$marine_park)
 
 # Save dataframes for app ----
 saveRDS(stats, file = here::here("data/app/stats.RDS"))

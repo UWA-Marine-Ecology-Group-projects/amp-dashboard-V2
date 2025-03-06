@@ -22,7 +22,7 @@ ui <- page_navbar(
     
     #     # First radio button for selecting network
     radioButtons("network", "Choose a Network/Bioregion:",
-                 choices = c(unique(all_data$file_info$network)
+                 choices = c(unique(all_data$metadata$network)
                  ),
                  
                  selected = "South-west"),

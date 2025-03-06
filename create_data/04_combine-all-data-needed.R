@@ -83,7 +83,7 @@ file_info <- do.call(rbind, lapply(rds_files, function(f) {
              stringsAsFactors = FALSE)
 })) %>%
   dplyr::mutate(file = stringr::str_replace_all(file, "inst/shiny/amp-dashboard/","")) %>%
-  dplyr::filter(marine_park %in% c("Geographe Marine Park", "Ningaloo Marine Park"))
+  dplyr::filter(marine_park %in% c("Geographe Marine Park", "Ningaloo Marine Park", "South-west Corner Marine Park (Western Arm)"))
 
 # read in temporal plot information ----
 # For the temporal plots
