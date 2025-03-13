@@ -84,7 +84,6 @@ server <- function(input, output, session) {
     parks <- all_data$synthesis_metadata %>%
       dplyr::filter(network == selected_network) %>%
       dplyr::distinct(marine_park) %>%
-      # dplyr::filter(!marine_park %in% c("Abrolhos Marine Park")) %>% # TODO remove this once abrolhos data is in
       dplyr::filter(!marine_park %in% c("South-west Network", "North-west Network")) %>%
       glimpse() %>%
       dplyr::pull(marine_park)
@@ -360,135 +359,135 @@ server <- function(input, output, session) {
     }
   })
   
-  output$fishnclips <- renderLeaflet({
-    
-    map.dat <- dat
-    
-    points <- metadata_filtered_data()
-    
-    boss.habitat.highlights.popups <- filter(map.dat, source %in% c("boss.habitat.highlights"))
-    bruv.habitat.highlights.popups <- filter(map.dat, source %in% c("bruv.habitat.highlights"))
-    fish.highlights.popups <- filter(map.dat, source %in% c("fish.highlights"))
-    threed.model.popups <- filter(map.dat, source %in% c("3d.model"))
-    image.popups <- filter(map.dat, source %in% c('image'))
-    
-    # Having this in the global.R script breaks now - make icons on server side
-    icon.bruv.habitat <- iconList(blue = makeIcon("images/marker_green.png", iconWidth = 40, iconHeight =40))
-    icon.boss.habitat <- iconList(blue = makeIcon("images/marker_pink.png", iconWidth = 40, iconHeight =40))
-    icon.fish <- iconList(blue = makeIcon("images/marker_yellow.png", iconWidth = 40, iconHeight =40))
-    icon.models <- iconList(blue = makeIcon("images/marker_purple.png", iconWidth = 40, iconHeight =40))
-    
-    leaflet <- leaflet() %>%
-      addProviderTiles('Esri.WorldImagery', group = "World Imagery") %>%
-      addTiles(group = "Open Street Map")%>%
-      addControl(html = html_legend, position = "bottomleft") %>%
-      # flyToBounds(lng1, lat1, lng2, lat2)%>%
-      fitBounds(
-        lng1 = min(points$longitude_dd), lat1 = min(points$latitude_dd),
-        lng2 = max(points$longitude_dd), lat2 = max(points$latitude_dd)
-      ) %>%
-      
-      # stereo-BRUV habitat videos
-      addMarkers(data=bruv.habitat.highlights.popups,
-                 icon = icon.bruv.habitat,
-                 popup = bruv.habitat.highlights.popups$popup,
-                 #label = bruv.habitat.highlights.popups$sample,
-                 clusterOptions = markerClusterOptions(iconCreateFunction =
-                                                         JS("
-                                          function(cluster) {
-                                             return new L.DivIcon({
-                                               html: '<div style=\"background-color:rgba(124, 248, 193, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
-                                               className: 'marker-cluster'
-                                             });
-                                           }")),
-                 group="BRUV Habitat imagery",
-                 popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
-      
-      # BOSS habitat videos
-      addMarkers(data=boss.habitat.highlights.popups,
-                 icon = icon.boss.habitat,
-                 popup = boss.habitat.highlights.popups$popup,
-                 #label = boss.habitat.highlights.popups$sample,
-                 clusterOptions = markerClusterOptions(iconCreateFunction =
-                                                         JS("
-                                          function(cluster) {
-                                             return new L.DivIcon({
-                                               html: '<div style=\"background-color:rgba(248, 124, 179, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
-                                               className: 'marker-cluster'
-                                             });
-                                           }")),
-                 group="BOSS Habitat imagery",
-                 popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
-      
-      # stereo-BRUV fish videos
-      addMarkers(data=fish.highlights.popups,
-                 icon = icon.fish,
-                 popup = fish.highlights.popups$popup,
-                 clusterOptions = markerClusterOptions(iconCreateFunction =
-                                                         JS("
-                                          function(cluster) {
-                                             return new L.DivIcon({
-                                               html: '<div style=\"background-color:rgba(241, 248, 124,0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
-                                               className: 'marker-cluster'
-                                             });
-                                           }")),
-                 group="Fish highlights",
-                 popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
-      
-      # 3D models
-      addMarkers(data=threed.model.popups,
-                 icon = icon.models,
-                 popup = threed.model.popups$popup,
-                 clusterOptions = markerClusterOptions(iconCreateFunction =
-                                                         JS("
-                                          function(cluster) {
-                                             return new L.DivIcon({
-                                               html: '<div style=\"background-color:rgba(131, 124, 248,0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
-                                               className: 'marker-cluster'
-                                             });
-                                           }")),
-                 group="3D models",
-                 popupOptions=c(closeButton = TRUE, minWidth = 0,maxWidth = 700)
-      )%>%
-      
-      
-      # Ngari Capes Marine Parks
-      addPolygons(data = ngari.mp, weight = 1, color = "black",
-                  fillOpacity = 0.8, fillColor = "#7bbc63",
-                  group = "State Marine Parks", label=ngari.mp$Name)%>%
-      
-      # State Marine Parks
-      addPolygons(data = state.mp, weight = 1, color = "black",
-                  fillOpacity = 0.8, fillColor = ~state.pal(zone),
-                  group = "State Marine Parks", label=state.mp$COMMENTS)%>%
-      
-      # Add a legend
-      addLegend(pal = state.pal, values = state.mp$zone, opacity = 1,
-                title="State Zones",
-                position = "bottomright", group = "State Marine Parks")%>%
-      
-      # Commonwealth Marine Parks
-      addPolygons(data = commonwealth.mp, weight = 1, color = "black",
-                  fillOpacity = 0.8, fillColor = ~commonwealth.pal(zone),
-                  group = "Australian Marine Parks", label=commonwealth.mp$ZoneName)%>%
-      
-      # Add a legend
-      addLegend(pal = commonwealth.pal, values = commonwealth.mp$zone, opacity = 1,
-                title="Australian Marine Park Zones",
-                position = "bottomright", group = "Australian Marine Parks")%>%
-      
-      addLayersControl(
-        baseGroups = c("World Imagery","Open Street Map"),
-        overlayGroups = c("Fish highlights",
-                          "BRUV Habitat imagery","BOSS Habitat imagery",
-                          "3D models",
-                          "State Marine Parks",
-                          "Australian Marine Parks"), options = layersControlOptions(collapsed = FALSE))
-    
-    return(leaflet)
-    
-  })
-  
+  # output$fishnclips <- renderLeaflet({
+  #   
+  #   map.dat <- dat
+  #   
+  #   points <- metadata_filtered_data()
+  #   
+  #   boss.habitat.highlights.popups <- filter(map.dat, source %in% c("boss.habitat.highlights"))
+  #   bruv.habitat.highlights.popups <- filter(map.dat, source %in% c("bruv.habitat.highlights"))
+  #   fish.highlights.popups <- filter(map.dat, source %in% c("fish.highlights"))
+  #   threed.model.popups <- filter(map.dat, source %in% c("3d.model"))
+  #   image.popups <- filter(map.dat, source %in% c('image'))
+  #   
+  #   # Having this in the global.R script breaks now - make icons on server side
+  #   icon.bruv.habitat <- iconList(blue = makeIcon("images/marker_green.png", iconWidth = 40, iconHeight =40))
+  #   icon.boss.habitat <- iconList(blue = makeIcon("images/marker_pink.png", iconWidth = 40, iconHeight =40))
+  #   icon.fish <- iconList(blue = makeIcon("images/marker_yellow.png", iconWidth = 40, iconHeight =40))
+  #   icon.models <- iconList(blue = makeIcon("images/marker_purple.png", iconWidth = 40, iconHeight =40))
+  #   
+  #   leaflet <- leaflet() %>%
+  #     addProviderTiles('Esri.WorldImagery', group = "World Imagery") %>%
+  #     addTiles(group = "Open Street Map")%>%
+  #     addControl(html = html_legend, position = "bottomleft") %>%
+  #     # flyToBounds(lng1, lat1, lng2, lat2)%>%
+  #     fitBounds(
+  #       lng1 = min(points$longitude_dd), lat1 = min(points$latitude_dd),
+  #       lng2 = max(points$longitude_dd), lat2 = max(points$latitude_dd)
+  #     ) %>%
+  #     
+  #     # stereo-BRUV habitat videos
+  #     addMarkers(data=bruv.habitat.highlights.popups,
+  #                icon = icon.bruv.habitat,
+  #                popup = bruv.habitat.highlights.popups$popup,
+  #                #label = bruv.habitat.highlights.popups$sample,
+  #                clusterOptions = markerClusterOptions(iconCreateFunction =
+  #                                                        JS("
+  #                                         function(cluster) {
+  #                                            return new L.DivIcon({
+  #                                              html: '<div style=\"background-color:rgba(124, 248, 193, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
+  #                                              className: 'marker-cluster'
+  #                                            });
+  #                                          }")),
+  #                group="BRUV Habitat imagery",
+  #                popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
+  #     
+  #     # BOSS habitat videos
+  #     addMarkers(data=boss.habitat.highlights.popups,
+  #                icon = icon.boss.habitat,
+  #                popup = boss.habitat.highlights.popups$popup,
+  #                #label = boss.habitat.highlights.popups$sample,
+  #                clusterOptions = markerClusterOptions(iconCreateFunction =
+  #                                                        JS("
+  #                                         function(cluster) {
+  #                                            return new L.DivIcon({
+  #                                              html: '<div style=\"background-color:rgba(248, 124, 179, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
+  #                                              className: 'marker-cluster'
+  #                                            });
+  #                                          }")),
+  #                group="BOSS Habitat imagery",
+  #                popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
+  #     
+  #     # stereo-BRUV fish videos
+  #     addMarkers(data=fish.highlights.popups,
+  #                icon = icon.fish,
+  #                popup = fish.highlights.popups$popup,
+  #                clusterOptions = markerClusterOptions(iconCreateFunction =
+  #                                                        JS("
+  #                                         function(cluster) {
+  #                                            return new L.DivIcon({
+  #                                              html: '<div style=\"background-color:rgba(241, 248, 124,0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
+  #                                              className: 'marker-cluster'
+  #                                            });
+  #                                          }")),
+  #                group="Fish highlights",
+  #                popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
+  #     
+  #     # 3D models
+  #     addMarkers(data=threed.model.popups,
+  #                icon = icon.models,
+  #                popup = threed.model.popups$popup,
+  #                clusterOptions = markerClusterOptions(iconCreateFunction =
+  #                                                        JS("
+  #                                         function(cluster) {
+  #                                            return new L.DivIcon({
+  #                                              html: '<div style=\"background-color:rgba(131, 124, 248,0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
+  #                                              className: 'marker-cluster'
+  #                                            });
+  #                                          }")),
+  #                group="3D models",
+  #                popupOptions=c(closeButton = TRUE, minWidth = 0,maxWidth = 700)
+  #     )%>%
+  #     
+  #     
+  #     # Ngari Capes Marine Parks
+  #     addPolygons(data = ngari.mp, weight = 1, color = "black",
+  #                 fillOpacity = 0.8, fillColor = "#7bbc63",
+  #                 group = "State Marine Parks", label=ngari.mp$Name)%>%
+  #     
+  #     # State Marine Parks
+  #     addPolygons(data = state.mp, weight = 1, color = "black",
+  #                 fillOpacity = 0.8, fillColor = ~state.pal(zone),
+  #                 group = "State Marine Parks", label=state.mp$COMMENTS)%>%
+  #     
+  #     # Add a legend
+  #     addLegend(pal = state.pal, values = state.mp$zone, opacity = 1,
+  #               title="State Zones",
+  #               position = "bottomright", group = "State Marine Parks")%>%
+  #     
+  #     # Commonwealth Marine Parks
+  #     addPolygons(data = commonwealth.mp, weight = 1, color = "black",
+  #                 fillOpacity = 0.8, fillColor = ~commonwealth.pal(zone),
+  #                 group = "Australian Marine Parks", label=commonwealth.mp$ZoneName)%>%
+  #     
+  #     # Add a legend
+  #     addLegend(pal = commonwealth.pal, values = commonwealth.mp$zone, opacity = 1,
+  #               title="Australian Marine Park Zones",
+  #               position = "bottomright", group = "Australian Marine Parks")%>%
+  #     
+  #     addLayersControl(
+  #       baseGroups = c("World Imagery","Open Street Map"),
+  #       overlayGroups = c("Fish highlights",
+  #                         "BRUV Habitat imagery","BOSS Habitat imagery",
+  #                         "3D models",
+  #                         "State Marine Parks",
+  #                         "Australian Marine Parks"), options = layersControlOptions(collapsed = FALSE))
+  #   
+  #   return(leaflet)
+  #   
+  # })
+  # 
   # Fish images ----
   # Network image
   output$ui_network <- renderUI({
@@ -519,12 +518,6 @@ server <- function(input, output, session) {
       )
     )
     
-    
-    # img(src = paste0("parks/", park, ".jpg"),
-    #     # height = 175,
-    #     align = "left",
-    #     width = "100%",
-    #     style = "margin-bottom: 10px;")
   })
   
   # Summary data for the Valuebox text ----
@@ -847,14 +840,14 @@ server <- function(input, output, session) {
     # message("combined data")
     data <- full_join(data, metadata) %>%
       replace_na(list(count = 0)) %>%
-      dplyr::mutate(year = str_sub(date_time, 1, 4)) 
+      mutate(count = as.numeric(count), year = str_sub(date_time, 1, 4))
     
-    max_ab <- ifelse(nrow(data) > 0, max(data$count, na.rm = TRUE), 1)  # Avoid errors
+    max_ab <- ifelse(nrow(data) > 0, max(as.numeric(data$count), na.rm = TRUE), 1)
     
     min_year <- min(data$year)
     
-    data <- data %>%
-      dplyr::filter(year %in% min_year)
+    # data <- data %>%
+    # dplyr::filter(year %in% min_year)
     
     overzero <- filter(data, count > 0)
     equalzero <- filter(data, count == 0)
@@ -885,24 +878,37 @@ server <- function(input, output, session) {
         position = "bottomright"
       ) %>%
       hideGroup("State Marine Parks") %>%
-      hideGroup("Australian Marine Parks") %>%
-      # clearMarkers() %>%
-      addCircleMarkers(
-        data = overzero, lat = ~latitude_dd, lng = ~longitude_dd,
-        radius = ~ (((count / max_ab) * 20)), fillOpacity = 0.5, stroke = FALSE,
-        label = ~ as.character(count), color = "green"
-      ) %>%
-      addCircleMarkers(
-        data = equalzero, lat = ~latitude_dd, lng = ~longitude_dd,
-        radius = 2, fillOpacity = 0.5, color = "white", stroke = FALSE,
-        label = ~ as.character(count)
-      ) %>%
-      add_legend(colors = c("white", "green", "green"),
-                 labels = c(0, round(max_ab / 2), max_ab),
-                 sizes = c(5, 20, 40),
-                 title = "Abundance", group = "abundance"
-      ) 
+      hideGroup("Australian Marine Parks") #%>%
+    # addCircleMarkers(
+    #   data = overzero, lat = ~latitude_dd, lng = ~longitude_dd,
+    #   radius = ~ (((count / max_ab) * 20)), fillOpacity = 0.5, stroke = FALSE,
+    #   label = ~ as.character(count), color = "green"
+    # ) %>%
+    # addCircleMarkers(
+    #   data = equalzero, lat = ~latitude_dd, lng = ~longitude_dd,
+    #   radius = 2, fillOpacity = 0.5, color = "white", stroke = FALSE,
+    #   label = ~ as.character(count)
+    # ) %>%
+    # add_legend(colors = c("white", "green", "green"),
+    #            labels = c(0, round(max_ab / 2), max_ab),
+    #            sizes = c(5, 20, 40),
+    #            title = "Abundance", group = "abundance"
+    # )
     
+  })
+  
+  output$species_year_slider <- renderUI({
+    
+    # Extract unique years from the dataset
+    available_years <- sort(unique(as.numeric(year_data()$year)))
+    
+    sliderTextInput(
+      inputId = "year",
+      label = "Choose a year:",
+      choices = available_years,
+      grid = TRUE,
+      width = "100%"
+    )
   })
   
   observeEvent(input$species, {
@@ -938,30 +944,78 @@ server <- function(input, output, session) {
         
       }
       
-      max_ab <- ifelse(nrow(data) > 0, max(data$count, na.rm = TRUE), 1)  # Avoid errors
+      max_ab <- ifelse(nrow(data) > 0, max(as.numeric(data$count), na.rm = TRUE), 1)
       
-      # message("combined data")
+      # message("chosen year")
+      # message(input$year)
+      
+      message("combined species filtered data")
+      
       data <- full_join(data, metadata) %>%
         replace_na(list(count = 0)) %>%
+        dplyr::mutate(count = as.numeric(count)) %>%
         dplyr::mutate(year = str_sub(date_time, 1, 4)) %>%
-        dplyr::filter(year %in% as.numeric(input$year))
-      #glimpse()
+        # dplyr::filter(year %in% as.numeric(input$year)) %>%
+        glimpse()
       
-      overzero <- filter(data, count > 0)
-      equalzero <- filter(data, count == 0)
+      message("chosen year")
+      chosen_year <- as.numeric(input$year) %>% glimpse()
       
-      leafletProxy("species_map") %>%
+      message(unique(data$year))
+      
+      message("data")
+      year_dat <- data %>%
+        dplyr::mutate(year = as.numeric(year)) %>%
+        dplyr::filter(year %in% chosen_year) %>%
+        glimpse()
+      
+      # year_dat <- year_dat[year_dat$year == chosen_year,]
+      
+      print(unique(year_dat$year))
+      
+      message("overzero")
+      overzero <- filter(year_dat, count > 0) %>% glimpse()
+      
+      message("underzero")
+      equalzero <- filter(year_dat, count %in% 0)
+      
+      
+        
+        
+        leafletProxy("species_map") %>%
         clearMarkers() %>%
-        addCircleMarkers(
-          data = overzero, lat = ~latitude_dd, lng = ~longitude_dd,
-          radius = ~ (((count / max_ab) * 20)), fillOpacity = 0.5, stroke = FALSE,
-          label = ~ as.character(count), color = "green"
-        ) %>%
-        addCircleMarkers(
-          data = equalzero, lat = ~latitude_dd, lng = ~longitude_dd,
-          radius = 2, fillOpacity = 0.5, color = "white", stroke = FALSE,
-          label = ~ as.character(count)
-        )
+          { 
+            if (nrow(overzero) > 0) {
+              addCircleMarkers(.,
+                data = overzero, lat = ~latitude_dd, lng = ~longitude_dd,
+                radius = ~ (((count / max_ab) * 20)), fillOpacity = 0.5, stroke = FALSE,
+                label = ~ as.character(count), color = "green"
+              )
+            } else {.}
+          } %>%
+          { 
+            if (nrow(equalzero) > 0) {
+              addCircleMarkers(.,
+                data = equalzero, lat = ~latitude_dd, lng = ~longitude_dd,
+                radius = 2, fillOpacity = 0.5, color = "white", stroke = FALSE,
+                label = ~ as.character(count)
+              )
+            } else {.}
+          }
+        
+        
+        
+        # %>%
+        # addCircleMarkers(
+        #   data = overzero, lat = ~latitude_dd, lng = ~longitude_dd,
+        #   radius = ~ (((count / max_ab) * 20)), fillOpacity = 0.5, stroke = FALSE,
+        #   label = ~ as.character(count), color = "green"
+        # ) %>%
+        # addCircleMarkers(
+        #   data = equalzero, lat = ~latitude_dd, lng = ~longitude_dd,
+        #   radius = 2, fillOpacity = 0.5, color = "white", stroke = FALSE,
+        #   label = ~ as.character(count)
+        # )
       
     })
   })
@@ -987,24 +1041,12 @@ server <- function(input, output, session) {
     }
     
     data <- metadata %>%
-      dplyr::mutate(year = str_sub(date_time, 1, 4)) 
+      dplyr::mutate(year = str_sub(date_time, 1, 4))
     
   })
   
   
-  output$species_year_slider <- renderUI({
-    
-    # Extract unique years from the dataset
-    available_years <- sort(unique(as.numeric(year_data()$year)))
-    
-    sliderTextInput(
-      inputId = "year",
-      label = "Choose a year:",
-      choices = available_years,
-      grid = TRUE,
-      width = "100%"
-    )
-  })
+  
   
   output$map_year_slider <- renderUI({
     
@@ -1034,191 +1076,191 @@ server <- function(input, output, session) {
     )
   })
   
-  # Create assemblage bubble plot ----
-  output$assemblage_map <- renderLeaflet({
-    
-    # points <- metadata_filtered_data()
-    
-    assemblage_metric <- tolower(str_replace_all(input$assemblage, " ", "_"))
-    
-    data <- all_data$metric_bubble_data %>%
-      dplyr::filter(metric %in% assemblage_metric)
-    
-    if (input$toggle == "Marine Park") {
-      
-      req(input$marine_park)  # Ensure marine_park input is selected
-      
-      data <- data %>%
-        dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% input$marine_park)
-      
-    } else {
-      
-      data <- data %>%
-        dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% paste(input$network, "Network"))
-      
-    }
-    
-    max_ab <- ifelse(nrow(data) > 0, max(data$value, na.rm = TRUE), 1)  # Avoid errors
-    
-    min_year <- min(data$year)
-    
-    # message("glimpse data")
-    
-    data <- data %>%
-      dplyr::filter(year %in% as.numeric(min_year)) #%>%
-    #glimpse()
-    
-    overzero <- filter(data, value  > 0)
-    equalzero <- filter(data, value  %in% 0) #%>%
-      # glimpse()
-    
-    # Initial Leaflet map ----
-    map <- leaflet(data) %>%
-      addTiles() %>%
-      
-      fitBounds(
-        lng1 = min(data$longitude_dd), lat1 = min(data$latitude_dd),
-        lng2 = max(data$longitude_dd), lat2 = max(data$latitude_dd)
-      ) %>%
-      
-      # Ngari Capes Marine Parks
-      addPolygons(data = ngari.mp, weight = 1, color = "black",
-                  fillOpacity = 0.8, fillColor = "#7bbc63",
-                  group = "State Marine Parks", label=ngari.mp$Name) %>%
-      
-      # State Marine Parks
-      addPolygons(data = state.mp, weight = 1, color = "black",
-                  fillOpacity = 0.8, fillColor = ~state.pal(zone),
-                  group = "State Marine Parks", label=state.mp$COMMENTS) %>%
-      
-      # Add a legend
-      addLegend(pal = state.pal, values = state.mp$zone, opacity = 1,
-                title="State Zones",
-                position = "bottomright", group = "State Marine Parks") %>%
-      
-      # Commonwealth Marine Parks
-      addPolygons(data = commonwealth.mp, weight = 1, color = "black",
-                  fillOpacity = 0.8, fillColor = ~commonwealth.pal(zone),
-                  group = "Australian Marine Parks", label=commonwealth.mp$ZoneName) %>%
-      
-      # Add a legend
-      addLegend(pal = commonwealth.pal, values = commonwealth.mp$zone, opacity = 1,
-                title="Australian Marine Park Zones",
-                position = "bottomright", group = "Australian Marine Parks") %>%
-      
-      addLayersControl(
-        overlayGroups = c("Australian Marine Parks",
-                          "State Marine Parks"),
-        options = layersControlOptions(collapsed = FALSE),
-        position = "bottomright"
-      )  %>%
-      hideGroup("State Marine Parks") %>%
-      hideGroup("Australian Marine Parks")%>%
-      hideGroup("FishNClips" )%>%
-      add_legend(colors = c("white", "green", "green"),
-                 labels = c(0, round(max_ab / 2), max_ab),
-                 sizes = c(5, 20, 40),
-                 title = input$assemblage,
-                 group = "abundance"
-      ) 
-    
-    
-    
-    
-    if (nrow(overzero)) {
-      map <- map %>%
-        addCircleMarkers(
-          data = overzero, lat = ~latitude_dd, lng = ~longitude_dd,
-          radius = ~ (((value / max_ab) * 20)), fillOpacity = 0.5, stroke = FALSE,
-          label = ~ as.character(value), color = "green"
-        )
-    }
-    
-    if (nrow(equalzero)) {
-      map <- map %>%
-        addCircleMarkers(
-          data = equalzero, lat = ~latitude_dd, lng = ~longitude_dd,
-          radius = 2, fillOpacity = 0.5, color = "white", stroke = FALSE,
-          label = ~ as.character(value)
-        )
-    }
-    
-    map
-    
-  })
+  # # Create assemblage bubble plot ----
+  # output$assemblage_map <- renderLeaflet({
+  # 
+  #   # points <- metadata_filtered_data()
+  # 
+  #   assemblage_metric <- tolower(str_replace_all(input$assemblage, " ", "_"))
+  # 
+  #   data <- all_data$metric_bubble_data %>%
+  #     dplyr::filter(metric %in% assemblage_metric)
+  # 
+  #   if (input$toggle == "Marine Park") {
+  # 
+  #     req(input$marine_park)  # Ensure marine_park input is selected
+  # 
+  #     data <- data %>%
+  #       dplyr::filter(network %in% input$network) %>%
+  #       dplyr::filter(marine_park %in% input$marine_park)
+  # 
+  #   } else {
+  # 
+  #     data <- data %>%
+  #       dplyr::filter(network %in% input$network) %>%
+  #       dplyr::filter(marine_park %in% paste(input$network, "Network"))
+  # 
+  #   }
+  # 
+  #   max_ab <- ifelse(nrow(data) > 0, max(data$value, na.rm = TRUE), 1)  # Avoid errors
+  # 
+  #   min_year <- min(data$year)
+  # 
+  #   # message("glimpse data")
+  # 
+  #   data <- data %>%
+  #     dplyr::filter(year %in% as.numeric(min_year)) #%>%
+  #   #glimpse()
+  # 
+  #   overzero <- filter(data, value  > 0)
+  #   equalzero <- filter(data, value  %in% 0) #%>%
+  #     # glimpse()
+  # 
+  #   # Initial Leaflet map ----
+  #   map <- leaflet(data) %>%
+  #     addTiles() %>%
+  # 
+  #     fitBounds(
+  #       lng1 = min(data$longitude_dd), lat1 = min(data$latitude_dd),
+  #       lng2 = max(data$longitude_dd), lat2 = max(data$latitude_dd)
+  #     ) %>%
+  # 
+  #     # Ngari Capes Marine Parks
+  #     addPolygons(data = ngari.mp, weight = 1, color = "black",
+  #                 fillOpacity = 0.8, fillColor = "#7bbc63",
+  #                 group = "State Marine Parks", label=ngari.mp$Name) %>%
+  # 
+  #     # State Marine Parks
+  #     addPolygons(data = state.mp, weight = 1, color = "black",
+  #                 fillOpacity = 0.8, fillColor = ~state.pal(zone),
+  #                 group = "State Marine Parks", label=state.mp$COMMENTS) %>%
+  # 
+  #     # Add a legend
+  #     addLegend(pal = state.pal, values = state.mp$zone, opacity = 1,
+  #               title="State Zones",
+  #               position = "bottomright", group = "State Marine Parks") %>%
+  # 
+  #     # Commonwealth Marine Parks
+  #     addPolygons(data = commonwealth.mp, weight = 1, color = "black",
+  #                 fillOpacity = 0.8, fillColor = ~commonwealth.pal(zone),
+  #                 group = "Australian Marine Parks", label=commonwealth.mp$ZoneName) %>%
+  # 
+  #     # Add a legend
+  #     addLegend(pal = commonwealth.pal, values = commonwealth.mp$zone, opacity = 1,
+  #               title="Australian Marine Park Zones",
+  #               position = "bottomright", group = "Australian Marine Parks") %>%
+  # 
+  #     addLayersControl(
+  #       overlayGroups = c("Australian Marine Parks",
+  #                         "State Marine Parks"),
+  #       options = layersControlOptions(collapsed = FALSE),
+  #       position = "bottomright"
+  #     )  %>%
+  #     hideGroup("State Marine Parks") %>%
+  #     hideGroup("Australian Marine Parks")%>%
+  #     hideGroup("FishNClips" )%>%
+  #     add_legend(colors = c("white", "green", "green"),
+  #                labels = c(0, round(max_ab / 2), max_ab),
+  #                sizes = c(5, 20, 40),
+  #                title = input$assemblage,
+  #                group = "abundance"
+  #     )
+  # 
+  # 
+  # 
+  # 
+  #   if (nrow(overzero)) {
+  #     map <- map %>%
+  #       addCircleMarkers(
+  #         data = overzero, lat = ~latitude_dd, lng = ~longitude_dd,
+  #         radius = ~ (((value / max_ab) * 20)), fillOpacity = 0.5, stroke = FALSE,
+  #         label = ~ as.character(value), color = "green"
+  #       )
+  #   }
+  # 
+  #   if (nrow(equalzero)) {
+  #     map <- map %>%
+  #       addCircleMarkers(
+  #         data = equalzero, lat = ~latitude_dd, lng = ~longitude_dd,
+  #         radius = 2, fillOpacity = 0.5, color = "white", stroke = FALSE,
+  #         label = ~ as.character(value)
+  #       )
+  #   }
+  # 
+  #   map
+  # 
+  # })
   
-  observeEvent(input$assemblage, {
-    observeEvent(input$assemblage_year, {
-      
-      # points <- metadata_filtered_data()
-      
-      assemblage_metric <- tolower(str_replace_all(input$assemblage, " ", "_"))
-      
-      data <- all_data$metric_bubble_data %>%
-        dplyr::filter(metric %in% assemblage_metric)
-      
-      if (input$toggle == "Marine Park") {
-        
-        req(input$marine_park)  # Ensure marine_park input is selected
-        
-        data <- data %>%
-          dplyr::filter(network %in% input$network) %>%
-          dplyr::filter(marine_park %in% input$marine_park)
-        
-      } else {
-        
-        data <- data %>%
-          dplyr::filter(network %in% input$network) %>%
-          dplyr::filter(marine_park %in% paste(input$network, "Network"))
-        
-      }
-      
-      max_ab <- ifelse(nrow(data) > 0, max(data$value, na.rm = TRUE), 1)  # Avoid errors
-      
-      data <- data %>%
-        dplyr::filter(year %in% input$assemblage_year)
-      
-      overzero <- filter(data, value > 0)
-      equalzero <- filter(data, value == 0)
-      
-      map <- leafletProxy("assemblage_map") %>%
-        clearMarkers()
-      
-      if (nrow(overzero)) {
-        map <- map %>%
-          addCircleMarkers(
-            data = overzero, lat = ~latitude_dd, lng = ~longitude_dd,
-            radius = ~ (((value / max_ab) * 20)), fillOpacity = 0.5, stroke = FALSE,
-            label = ~ as.character(value), color = "green"
-          )
-      }
-      
-      if (nrow(equalzero)) {
-        map <- map %>%
-          addCircleMarkers(
-            data = equalzero, lat = ~latitude_dd, lng = ~longitude_dd,
-            radius = 2, fillOpacity = 0.5, color = "white", stroke = FALSE,
-            label = ~ as.character(value)
-          )
-      }
-      
-      # %>%
-      #   clearMarkers() %>%
-      #   addCircleMarkers(
-      #     data = overzero, lat = ~latitude_dd, lng = ~longitude_dd,
-      #     radius = ~ (((count / max_ab) * 20)), fillOpacity = 0.5, stroke = FALSE,
-      #     label = ~ as.character(count), color = "green"
-      #   ) %>%
-      #   addCircleMarkers(
-      #     data = equalzero, lat = ~latitude_dd, lng = ~longitude_dd,
-      #     radius = 2, fillOpacity = 0.5, color = "white", stroke = FALSE,
-      #     label = ~ as.character(count)
-      #   )
-      
-    })
-  })
+  # observeEvent(input$assemblage, {
+  #   observeEvent(input$assemblage_year, {
+  #     
+  #     # points <- metadata_filtered_data()
+  #     
+  #     assemblage_metric <- tolower(str_replace_all(input$assemblage, " ", "_"))
+  #     
+  #     data <- all_data$metric_bubble_data %>%
+  #       dplyr::filter(metric %in% assemblage_metric)
+  #     
+  #     if (input$toggle == "Marine Park") {
+  #       
+  #       req(input$marine_park)  # Ensure marine_park input is selected
+  #       
+  #       data <- data %>%
+  #         dplyr::filter(network %in% input$network) %>%
+  #         dplyr::filter(marine_park %in% input$marine_park)
+  #       
+  #     } else {
+  #       
+  #       data <- data %>%
+  #         dplyr::filter(network %in% input$network) %>%
+  #         dplyr::filter(marine_park %in% paste(input$network, "Network"))
+  #       
+  #     }
+  #     
+  #     max_ab <- ifelse(nrow(data) > 0, max(data$value, na.rm = TRUE), 1)  # Avoid errors
+  #     
+  #     data <- data %>%
+  #       dplyr::filter(year %in% input$assemblage_year)
+  #     
+  #     overzero <- filter(data, value > 0)
+  #     equalzero <- filter(data, value == 0)
+  #     
+  #     map <- leafletProxy("assemblage_map") %>%
+  #       clearMarkers()
+  #     
+  #     if (nrow(overzero)) {
+  #       map <- map %>%
+  #         addCircleMarkers(
+  #           data = overzero, lat = ~latitude_dd, lng = ~longitude_dd,
+  #           radius = ~ (((value / max_ab) * 20)), fillOpacity = 0.5, stroke = FALSE,
+  #           label = ~ as.character(value), color = "green"
+  #         )
+  #     }
+  #     
+  #     if (nrow(equalzero)) {
+  #       map <- map %>%
+  #         addCircleMarkers(
+  #           data = equalzero, lat = ~latitude_dd, lng = ~longitude_dd,
+  #           radius = 2, fillOpacity = 0.5, color = "white", stroke = FALSE,
+  #           label = ~ as.character(value)
+  #         )
+  #     }
+  #     
+  #     # %>%
+  #     #   clearMarkers() %>%
+  #     #   addCircleMarkers(
+  #     #     data = overzero, lat = ~latitude_dd, lng = ~longitude_dd,
+  #     #     radius = ~ (((count / max_ab) * 20)), fillOpacity = 0.5, stroke = FALSE,
+  #     #     label = ~ as.character(count), color = "green"
+  #     #   ) %>%
+  #     #   addCircleMarkers(
+  #     #     data = equalzero, lat = ~latitude_dd, lng = ~longitude_dd,
+  #     #     radius = 2, fillOpacity = 0.5, color = "white", stroke = FALSE,
+  #     #     label = ~ as.character(count)
+  #     #   )
+  #     
+  #   })
+  # })
   
   
   # Species specific temporal plots ----
@@ -1372,12 +1414,12 @@ server <- function(input, output, session) {
                  icon = icon,
                  clusterOptions = markerClusterOptions(iconCreateFunction =
                                                          JS("
-                                          function(cluster) {
-                                             return new L.DivIcon({
-                                               html: '<div style=\"background-color:rgba(0, 123, 255, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
-                                               className: 'marker-cluster'
-                                             });
-                                           }")),
+                                        function(cluster) {
+                                           return new L.DivIcon({
+                                             html: '<div style=\"background-color:rgba(0, 123, 255, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
+                                             className: 'marker-cluster'
+                                           });
+                                         }")),
                  group = "Sampling locations"
       )%>%
       
@@ -1419,12 +1461,12 @@ server <- function(input, output, session) {
                  #label = bruv.habitat.highlights.popups$sample,
                  clusterOptions = markerClusterOptions(iconCreateFunction =
                                                          JS("
-                                          function(cluster) {
-                                             return new L.DivIcon({
-                                               html: '<div style=\"background-color:rgba(124, 248, 193, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
-                                               className: 'marker-cluster'
-                                             });
-                                           }")),
+                                        function(cluster) {
+                                           return new L.DivIcon({
+                                             html: '<div style=\"background-color:rgba(124, 248, 193, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
+                                             className: 'marker-cluster'
+                                           });
+                                         }")),
                  group = "FishNClips",
                  popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
       
@@ -1435,12 +1477,12 @@ server <- function(input, output, session) {
                  #label = boss.habitat.highlights.popups$sample,
                  clusterOptions = markerClusterOptions(iconCreateFunction =
                                                          JS("
-                                          function(cluster) {
-                                             return new L.DivIcon({
-                                               html: '<div style=\"background-color:rgba(248, 124, 179, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
-                                               className: 'marker-cluster'
-                                             });
-                                           }")),
+                                        function(cluster) {
+                                           return new L.DivIcon({
+                                             html: '<div style=\"background-color:rgba(248, 124, 179, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
+                                             className: 'marker-cluster'
+                                           });
+                                         }")),
                  group = "FishNClips",
                  popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
       
@@ -1450,12 +1492,12 @@ server <- function(input, output, session) {
                  popup = fish.highlights.popups$popup,
                  clusterOptions = markerClusterOptions(iconCreateFunction =
                                                          JS("
-                                          function(cluster) {
-                                             return new L.DivIcon({
-                                               html: '<div style=\"background-color:rgba(241, 248, 124,0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
-                                               className: 'marker-cluster'
-                                             });
-                                           }")),
+                                        function(cluster) {
+                                           return new L.DivIcon({
+                                             html: '<div style=\"background-color:rgba(241, 248, 124,0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
+                                             className: 'marker-cluster'
+                                           });
+                                         }")),
                  group = "FishNClips",
                  popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
       
@@ -1465,12 +1507,12 @@ server <- function(input, output, session) {
                  popup = threed.model.popups$popup,
                  clusterOptions = markerClusterOptions(iconCreateFunction =
                                                          JS("
-                                          function(cluster) {
-                                             return new L.DivIcon({
-                                               html: '<div style=\"background-color:rgba(131, 124, 248,0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
-                                               className: 'marker-cluster'
-                                             });
-                                           }")),
+                                        function(cluster) {
+                                           return new L.DivIcon({
+                                             html: '<div style=\"background-color:rgba(131, 124, 248,0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
+                                             className: 'marker-cluster'
+                                           });
+                                         }")),
                  group = "FishNClips",
                  popupOptions=c(closeButton = TRUE, minWidth = 0,maxWidth = 700)
       )%>%
@@ -1507,12 +1549,12 @@ server <- function(input, output, session) {
                  icon = icon,
                  clusterOptions = markerClusterOptions(iconCreateFunction =
                                                          JS("
-                                          function(cluster) {
-                                             return new L.DivIcon({
-                                               html: '<div style=\"background-color:rgba(0, 123, 255, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
-                                               className: 'marker-cluster'
-                                             });
-                                           }")),
+                                        function(cluster) {
+                                           return new L.DivIcon({
+                                             html: '<div style=\"background-color:rgba(0, 123, 255, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
+                                             className: 'marker-cluster'
+                                           });
+                                         }")),
                  group = "Sampling locations")
     
     map
@@ -1573,12 +1615,12 @@ server <- function(input, output, session) {
                  icon = icon,
                  clusterOptions = markerClusterOptions(iconCreateFunction =
                                                          JS("
-                                          function(cluster) {
-                                             return new L.DivIcon({
-                                               html: '<div style=\"background-color:rgba(0, 123, 255, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
-                                               className: 'marker-cluster'
-                                             });
-                                           }")),
+                                        function(cluster) {
+                                           return new L.DivIcon({
+                                             html: '<div style=\"background-color:rgba(0, 123, 255, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
+                                             className: 'marker-cluster'
+                                           });
+                                         }")),
                  group = "Sampling locations"
       )%>%
       
@@ -1619,12 +1661,12 @@ server <- function(input, output, session) {
                  #label = bruv.habitat.highlights.popups$sample,
                  clusterOptions = markerClusterOptions(iconCreateFunction =
                                                          JS("
-                                          function(cluster) {
-                                             return new L.DivIcon({
-                                               html: '<div style=\"background-color:rgba(124, 248, 193, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
-                                               className: 'marker-cluster'
-                                             });
-                                           }")),
+                                        function(cluster) {
+                                           return new L.DivIcon({
+                                             html: '<div style=\"background-color:rgba(124, 248, 193, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
+                                             className: 'marker-cluster'
+                                           });
+                                         }")),
                  group = "FishNClips",
                  popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
       
@@ -1635,12 +1677,12 @@ server <- function(input, output, session) {
                  #label = boss.habitat.highlights.popups$sample,
                  clusterOptions = markerClusterOptions(iconCreateFunction =
                                                          JS("
-                                          function(cluster) {
-                                             return new L.DivIcon({
-                                               html: '<div style=\"background-color:rgba(248, 124, 179, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
-                                               className: 'marker-cluster'
-                                             });
-                                           }")),
+                                        function(cluster) {
+                                           return new L.DivIcon({
+                                             html: '<div style=\"background-color:rgba(248, 124, 179, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
+                                             className: 'marker-cluster'
+                                           });
+                                         }")),
                  group = "FishNClips",
                  popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
       
@@ -1650,12 +1692,12 @@ server <- function(input, output, session) {
                  popup = fish.highlights.popups$popup,
                  clusterOptions = markerClusterOptions(iconCreateFunction =
                                                          JS("
-                                          function(cluster) {
-                                             return new L.DivIcon({
-                                               html: '<div style=\"background-color:rgba(241, 248, 124,0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
-                                               className: 'marker-cluster'
-                                             });
-                                           }")),
+                                        function(cluster) {
+                                           return new L.DivIcon({
+                                             html: '<div style=\"background-color:rgba(241, 248, 124,0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
+                                             className: 'marker-cluster'
+                                           });
+                                         }")),
                  group = "FishNClips",
                  popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
       
@@ -1665,12 +1707,12 @@ server <- function(input, output, session) {
                  popup = threed.model.popups$popup,
                  clusterOptions = markerClusterOptions(iconCreateFunction =
                                                          JS("
-                                          function(cluster) {
-                                             return new L.DivIcon({
-                                               html: '<div style=\"background-color:rgba(131, 124, 248,0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
-                                               className: 'marker-cluster'
-                                             });
-                                           }")),
+                                        function(cluster) {
+                                           return new L.DivIcon({
+                                             html: '<div style=\"background-color:rgba(131, 124, 248,0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
+                                             className: 'marker-cluster'
+                                           });
+                                         }")),
                  group = "FishNClips",
                  popupOptions=c(closeButton = TRUE, minWidth = 0,maxWidth = 700)
       )%>%
@@ -1736,35 +1778,35 @@ server <- function(input, output, session) {
       htmlwidgets::onRender(
         glue::glue(
           "function(el, x) {{
-           var map = this;
-           var customControl = L.control({{position: 'topright'}});  // Position of the control
+         var map = this;
+         var customControl = L.control({{position: 'topright'}});  // Position of the control
 
-           customControl.onAdd = function(map) {{
-             var div = L.DomUtil.create('div', 'leaflet-bar');
-             div.innerHTML = `
-               <div style='text-align: center; margin-bottom: 8px; font-weight: bold;'>
-                 {metric_title}
-               </div>
-               <form>
-                 <label><input type='radio' name='layer' value='Predicted' checked> Predicted</label><br>
-                 <label><input type='radio' name='layer' value='Error'> Error</label>
-               </form>`;
-             div.style.backgroundColor = 'white';
-             div.style.padding = '10px';
-             div.style.border = '2px solid gray';
-             return div;
-           }};
+         customControl.onAdd = function(map) {{
+           var div = L.DomUtil.create('div', 'leaflet-bar');
+           div.innerHTML = `
+             <div style='text-align: center; margin-bottom: 8px; font-weight: bold;'>
+               {metric_title}
+             </div>
+             <form>
+               <label><input type='radio' name='layer' value='Predicted' checked> Predicted</label><br>
+               <label><input type='radio' name='layer' value='Error'> Error</label>
+             </form>`;
+           div.style.backgroundColor = 'white';
+           div.style.padding = '10px';
+           div.style.border = '2px solid gray';
+           return div;
+         }};
 
-           customControl.addTo(map);
+         customControl.addTo(map);
 
-           // Listen for changes in the radio buttons
-           var radioButtons = document.querySelectorAll('input[name=\"layer\"]');
-           radioButtons.forEach(function(rb) {{
-             rb.addEventListener('change', function(e) {{
-               Shiny.setInputValue('layer_toggle', e.target.value, {{priority: 'event'}});  // Send selected value to Shiny
-             }});
+         // Listen for changes in the radio buttons
+         var radioButtons = document.querySelectorAll('input[name=\"layer\"]');
+         radioButtons.forEach(function(rb) {{
+           rb.addEventListener('change', function(e) {{
+             Shiny.setInputValue('layer_toggle', e.target.value, {{priority: 'event'}});  // Send selected value to Shiny
            }});
-         }}"
+         }});
+       }}"
         )
       )
   })
@@ -1772,23 +1814,23 @@ server <- function(input, output, session) {
   observe({
     input$australia_map_groups
     shinyjs::runjs(sprintf("
-      var isVisible = %s.includes('FishNClips');
-      var legend = document.querySelector('.fishnclips-legend-aus');
-      if (legend) {
-        legend.style.display = isVisible ? 'block' : 'none';
-      }
-    ", jsonlite::toJSON(input$australia_map_groups)))
+    var isVisible = %s.includes('FishNClips');
+    var legend = document.querySelector('.fishnclips-legend-aus');
+    if (legend) {
+      legend.style.display = isVisible ? 'block' : 'none';
+    }
+  ", jsonlite::toJSON(input$australia_map_groups)))
   })
   
   observe({
     input$map_groups
     shinyjs::runjs(sprintf("
-      var isVisible = %s.includes('FishNClips');
-      var legend = document.querySelector('.fishnclips-legend-map');
-      if (legend) {
-        legend.style.display = isVisible ? 'block' : 'none';
-      }
-    ", jsonlite::toJSON(input$map_groups)))
+    var isVisible = %s.includes('FishNClips');
+    var legend = document.querySelector('.fishnclips-legend-map');
+    if (legend) {
+      legend.style.display = isVisible ? 'block' : 'none';
+    }
+  ", jsonlite::toJSON(input$map_groups)))
   })
   
   

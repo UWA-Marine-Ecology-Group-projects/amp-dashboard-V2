@@ -144,3 +144,4 @@ add_legend <- function(map, colors, labels, sizes, opacity = 1, group, title) { 
     )
   )
 }
+
