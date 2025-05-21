@@ -2,23 +2,24 @@ ui <- page_navbar(
   id = "navbar_id", # Add an ID to track the active panel
   title = div(
     HTML(paste0(
-      "Australian Marine Parks Dashboard <i>(this is a draft and contains fake data DO NOT USE FOR INTERPRETATION)</i>"
+      "Australian Marine Parks Dashboard"
     )),
   ),
   nav_spacer(),
+  useShinyalert(),  # Set up shinyalert
   
   # Sidebar with radio button and dropdowns
   sidebar = sidebar(
     id = "main_sidebar", # Add an ID to the sidebar
     width = 300,
     
-    radioButtons(
-      inputId = "toggle",
-      label = "Investigate:",
-      choices = c("Network/Bioregion" = "Network", 
-                  "Marine Park" = "Marine Park"),
-      selected = "Marine Park"
-    ),
+    # radioButtons(
+    #   inputId = "toggle",
+    #   label = "Investigate:",
+    #   choices = c("Network/Bioregion" = "Network", 
+    #               "Marine Park" = "Marine Park"),
+    #   selected = "Marine Park"
+    # ),
     
     #     # First radio button for selecting network
     radioButtons("network", "Choose a Network/Bioregion:",
@@ -27,11 +28,11 @@ ui <- page_navbar(
                  
                  selected = "South-west"),
     #     # Conditionally display the park input based on filterpark selection
-    conditionalPanel(
-      condition = "input.toggle == 'Marine Park'",
-      
+    # conditionalPanel(
+    #   condition = "input.toggle == 'Marine Park'",
+    #   
       uiOutput("dynamic_marine_park")
-    ),
+    # ),
     
   ),
   
@@ -46,14 +47,15 @@ ui <- page_navbar(
       
       div(
         # Conditional panels for name of the view ----
-        conditionalPanel(
-          condition = "input.toggle == 'Network'",
-          uiOutput("network_name_1")),
+        # conditionalPanel(
+        #   condition = "input.toggle == 'Network'",
+        #   uiOutput("network_name_1")),
         
-        conditionalPanel(
-          condition = "input.toggle == 'Marine Park'",
+        # conditionalPanel(
+          # condition = "input.toggle == 'Marine Park'",
           
-          uiOutput("marinepark_name_1"))
+          uiOutput("marinepark_name_1")
+        # )
       ),
       
       layout_column_wrap(
@@ -83,32 +85,32 @@ ui <- page_navbar(
                                fill = FALSE,
                                
                                value_box(
-                                 title = "Fish counted",
+                                 title = textOutput("individuals_counted_title"),
                                  theme = "primary",
-                                 value = textOutput("fish_counted"),
-                                 showcase = icon("fish")
+                                 value = textOutput("individuals_counted"),
+                                 showcase = uiOutput("dynamic_icon1")# icon("fish")
                                ),
                                
                                value_box(
-                                 title = "Fish species identified",
+                                 title = textOutput("number_species_title"),
                                  theme = "primary",
-                                 value = textOutput("fish_species"),
-                                 showcase = icon("fish")
+                                 value = textOutput("number_species"),
+                                 showcase = uiOutput("dynamic_icon2")#icon("fish")
                                )
             )),
           
           # Marine park images
           div(style = "align-items: center; justify-content: center;",
-              conditionalPanel(
-                condition = "input.toggle == 'Network'",
-                uiOutput("ui_network",
-                         width = "100%")
-              ),
-              conditionalPanel(
-                condition = "input.toggle == 'Marine Park'",
+              # conditionalPanel(
+              #   condition = "input.toggle == 'Network'",
+              #   uiOutput("ui_network",
+              #            width = "100%")
+              # ),
+              # conditionalPanel(
+              #   condition = "input.toggle == 'Marine Park'",
                 uiOutput("ui_marine_park",
                          width = "100%")
-              )
+              # )
           )
         ),
         
@@ -148,13 +150,10 @@ ui <- page_navbar(
                             ),
                             
                             value_box(
-                              title = "stereo-BRUVs deployed",
+                              title = textOutput("samples_deployed_title"),
                               theme = "primary",
-                              value = textOutput("bruvs_deployed"),
-                              showcase = img(src = "stereo-BRUV_filled_transparent.png",
-                                             height = "80px",
-                                             style = "margin-left: 15px;" # Adjust the value as needed)
-                              )
+                              value = textOutput("samples_deployed"),
+                              showcase = uiOutput("dynamic_icon3")#icon("fish")
                             ),
                           ),
                           

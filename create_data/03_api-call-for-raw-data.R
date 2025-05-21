@@ -68,15 +68,15 @@ length_combined <- length_temp %>%
 total_number <- count_combined %>%
   dplyr::filter(count > 0) %>%
   dplyr::group_by(synthesis_id) %>%
-  dplyr::summarise(fish_counted = sum(count))
+  dplyr::summarise(individuals_counted = sum(count))
 
 species_richness <- count_combined %>%
   dplyr::filter(count > 0) %>%
   dplyr::distinct(synthesis_id, family, genus, species) %>%
-  count(synthesis_id, name = "fish_species")
+  count(synthesis_id, name = "number_species")
 
 number_deployments <- metadata_combined %>%
-  count(synthesis_id, name = "bruvs_deployed")
+  count(synthesis_id, name = "samples_deployed")
 
 stats <- left_join(total_number, species_richness) %>%
   left_join(number_deployments) %>%

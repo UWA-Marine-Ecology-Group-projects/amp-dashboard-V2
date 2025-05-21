@@ -3,6 +3,17 @@ server <- function(input, output, session) {
   # #   active_panel <- input$navbar_id %>% glimpse
   # # })
   
+  shinyalert(
+    title = "Draft Product Disclaimer",
+    text = "By proceeding, you agree that this draft product is not to be used for decision-making, communication, or publication purposes.",
+    type = "warning",
+    confirmButtonText = "I Agree",
+    html = FALSE,
+    closeOnEsc = FALSE,
+    closeOnClickOutside = FALSE
+  )
+  
+  
   # Dynamic dropdown for Ecosystem Component ----
   output$dynamic_ecosystem_subcomponent <- renderUI({
     req(input$metric)
@@ -37,7 +48,8 @@ server <- function(input, output, session) {
   
   # Marine Park Name Function ----
   render_marinepark_name <- function() {
-    req(input$toggle, input$network, input$marine_park)
+    req(#input$toggle, 
+        input$network, input$marine_park)
     h3(HTML(paste0("<b>", input$marine_park)))
   }
   
@@ -46,7 +58,8 @@ server <- function(input, output, session) {
   
   # Network Name Function ----
   render_network_name <- function() {
-    req(input$toggle, input$network, input$marine_park)
+    req(#input$toggle, 
+        input$network, input$marine_park)
     h3(HTML(paste0("<b>", input$network, " Network")))
   }
   
@@ -65,32 +78,66 @@ server <- function(input, output, session) {
     h5(HTML(paste0("<i>", input$options)))
   })
   
-  # Reset marine park input when switching toggle
-  observeEvent(input$toggle, {
-    if (input$toggle == "Network") {
-      updateSelectInput(session, "marine_park", selected = NULL)
-    }
-  })
+  # # Reset marine park input when switching toggle
+  # observeEvent(input$toggle, {
+  #   if (input$toggle == "Network") {
+  #     updateSelectInput(session, "marine_park", selected = NULL)
+  #   }
+  # })
+  
+  # # Reactive to filter parks based on selected network
+  # available_parks <- reactive({
+  #   req(input$network)
+  #   
+  #   all_data$synthesis_metadata %>%
+  #     dplyr::filter(network == input$network) %>%
+  #     dplyr::distinct(marine_park) %>%
+  #     dplyr::filter(!marine_park %in% c("South-west Network", "North-west Network")) %>%
+  #     dplyr::pull(marine_park)
+  # })
+  # 
+  # # Dynamic UI for Marine Park/Sentinel Area
+  # output$dynamic_marine_park <- renderUI({
+  #   parks <- available_parks()
+  #   
+  #   # Default to "None" if no parks available
+  #   radioButtons("marine_park",
+  #                "Marine Park/Sentinel Area:",
+  #                choices = if (length(parks) > 0) parks else "None",
+  #                selected = if (length(parks) > 0) parks[1] else "None"
+  #   )
+  # })
+  # 
+  # # Observe network selection and update radio buttons
+  # observeEvent(input$network, {
+  #   parks <- available_parks()
+  #   
+  #   updateRadioButtons(session, "marine_park",
+  #                      choices = if (length(parks) > 0) parks else "None",
+  #                      selected = if (length(parks) > 0) parks[1] else "None")
+  # })
   
   # Dynamic Marine Park/Sentinel Area Options ----
   output$dynamic_marine_park <- renderUI({
-    # req(input$toggle, input$network)
+    req(#input$toggle, 
+        input$network)
     
     message("chosen network")
-    selected_network <- input$network %>% glimpse
+    selected_network <- input$network #%>% glimpse
     
     message("parks")
     
     parks <- all_data$synthesis_metadata %>%
       dplyr::filter(network == selected_network) %>%
       dplyr::distinct(marine_park) %>%
+      dplyr::arrange(marine_park) %>%
       dplyr::filter(!marine_park %in% c("South-west Network", "North-west Network")) %>%
-      glimpse() %>%
-      dplyr::pull(marine_park)
+      dplyr::pull(marine_park) #%>%
+      #glimpse()
     
     radioButtons("marine_park",
                  "Marine Park/Sentinel Area:",
-                 choices = parks
+                 choices = sort(parks)
                  # c("Geographe Marine Park", "Abrolhos Marine Park", "South-west Corner Marine Park")
     )
   })
@@ -104,16 +151,21 @@ server <- function(input, output, session) {
       dplyr::filter(!marine_park %in% c("South-west Network", "North-west Network")) %>%
       dplyr::pull(marine_park)
     
-    updateRadioButtons(session, "marine_park", choices = c(parks), selected = parks[1])
+    if (length(parks) > 0) {
+      updateRadioButtons(session, "marine_park", choices = c(parks), selected = parks[1])
+    } else {
+      updateRadioButtons(session, "marine_park", choices = NULL)
+    }
   })
   
   # Filter the Condition dataset ----
   condition_filtered_data <- reactive({
-    req(input$toggle, input$network)
+    req(#input$toggle, 
+        input$network)
     
     plot_list <- all_data$file_info
     
-    if (input$toggle == "Marine Park") {
+    # if (input$toggle == "Marine Park") {
       req(input$marine_park)  # Ensure marine_park input is selected
       
       # message("view conditional data marine park")
@@ -122,15 +174,15 @@ server <- function(input, output, session) {
         dplyr::filter(network %in% input$network) %>%
         dplyr::filter(marine_park %in% input$marine_park) %>%
         dplyr::filter(metric %in% input$ecosystemsubcomponent) #%>% glimpse
-    } else {
-      
-      # message("view conditional data network")
-      
-      plot_list %>%
-        dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% paste(input$network, "Network")) %>%
-        dplyr::filter(metric %in% input$ecosystemsubcomponent) #%>% glimpse
-    }
+    # } else {
+    #   
+    #   # message("view conditional data network")
+    #   
+    #   plot_list %>%
+    #     dplyr::filter(network %in% input$network) %>%
+    #     dplyr::filter(marine_park %in% paste(input$network, "Network")) %>%
+    #     dplyr::filter(metric %in% input$ecosystemsubcomponent) #%>% glimpse
+    # }
   })
   
   # # Condition plot UI ----
@@ -139,7 +191,7 @@ server <- function(input, output, session) {
     
     message("view chosen plot")
     
-    chosen_plot <- condition_filtered_data() %>% glimpse
+    chosen_plot <- condition_filtered_data() #%>% glimpse
     # validate(need(nrow(chosen_plot) > 0, "No condition data available for the selected filters."))
     plotOutput("condition_plot", height = condition_plot_height())
   })
@@ -190,64 +242,67 @@ server <- function(input, output, session) {
   
   # Dynamic trend text for Observations tab ----
   output$dynamic_text <- renderUI({
-    req(input$toggle, input$network)
+    req(#input$toggle, 
+        input$network)
     
-    if (input$toggle == "Marine Park") {
+    # if (input$toggle == "Marine Park") {
       req(input$marine_park)  # Ensure marine_park input is selected
       text <- all_data$text_data %>%
         dplyr::filter(network %in% input$network) %>%
         dplyr::filter(marine_park %in% input$marine_park) %>%
         dplyr::filter(ecosystem_condition %in% input$ecosystemsubcomponent)
-    } else {
-      text <- all_data$text_data %>%
-        dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% paste(input$network, "Network")) %>%
-        dplyr::filter(ecosystem_condition %in% input$ecosystemsubcomponent)
-    }
+    # } else {
+    #   text <- all_data$text_data %>%
+    #     dplyr::filter(network %in% input$network) %>%
+    #     dplyr::filter(marine_park %in% paste(input$network, "Network")) %>%
+    #     dplyr::filter(ecosystem_condition %in% input$ecosystemsubcomponent)
+    # }
     
     h6(unique(text$text))
   })
   
   # Dynamic trend text for Status and trends tab ----
   output$dynamic_text1 <- renderUI({
-    req(input$toggle, input$network)
+    req(#input$toggle, 
+        input$network)
     
-    if (input$toggle == "Marine Park") {
+    # if (input$toggle == "Marine Park") {
       req(input$marine_park)  # Ensure marine_park input is selected
       text <- all_data$text_data %>%
         dplyr::filter(network %in% input$network) %>%
         dplyr::filter(marine_park %in% input$marine_park) %>%
         dplyr::filter(ecosystem_condition %in% input$ecosystemsubcomponent)
-    } else {
-      text <- all_data$text_data %>%
-        dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% paste(input$network, "Network")) %>%
-        dplyr::filter(ecosystem_condition %in% input$ecosystemsubcomponent)
-    }
+    # } else {
+    #   text <- all_data$text_data %>%
+    #     dplyr::filter(network %in% input$network) %>%
+    #     dplyr::filter(marine_park %in% paste(input$network, "Network")) %>%
+    #     dplyr::filter(ecosystem_condition %in% input$ecosystemsubcomponent)
+    # }
     
     h6(unique(text$text))
   })
   
   # Temporal plot filtered data ----
   temporal_filtered_data <- reactive({
-    req(input$toggle, input$network)
+    req(#input$toggle, 
+        input$network)
     
     plot_list <- all_data$temporal_file_info
     
-    if(input$toggle %in% "Marine Park"){
+    # if(input$toggle %in% "Marine Park"){
       req(input$marine_park) # Ensure marine_park input is available
       chosen_plot <- plot_list %>%
         dplyr::filter(network %in% input$network) %>%
         dplyr::filter(marine_park %in% input$marine_park) %>%
         dplyr::filter(metric %in% input$options)
       
-    } else {
-      
-      chosen_plot <- plot_list %>%
-        dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% paste(input$network, "Network")) %>%
-        dplyr::filter(metric %in% input$options)
-    }
+    # } else {
+    #   
+    #   chosen_plot <- plot_list %>%
+    #     dplyr::filter(network %in% input$network) %>%
+    #     dplyr::filter(marine_park %in% paste(input$network, "Network")) %>%
+    #     dplyr::filter(metric %in% input$options)
+    # }
   })
   
   # Ouput for temporal plot ----
@@ -293,201 +348,206 @@ server <- function(input, output, session) {
   # UI for temporal plot ----
   output$temporal_plot_ui <- renderUI({
     
-    req(input$toggle, input$network)
+    req(#input$toggle, 
+        input$network)
     plotOutput("temporal_plot", height = paste0(temporal_plot_height(), "px"))
     
   })
   
   # Create filtered metadata ----
   metadata_filtered_data <- reactive({
-    req(input$toggle, input$network)
+    req(#input$toggle, 
+        input$network)
     
     metadata <- all_data$metadata
     
-    if (input$toggle == "Marine Park") {
+    # if (input$toggle == "Marine Park") {
       req(input$marine_park)  # Ensure marine_park input is selected
       metadata %>%
         dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% input$marine_park)
-    } else {
-      metadata %>%
-        dplyr::filter(network %in% input$network)
-    }
+        dplyr::filter(marine_park %in% input$marine_park) %>%
+        dplyr::filter(ecosystem_component %in% input$ecosystemsubcomponent)
+    # } else {
+    #   metadata %>%
+    #     dplyr::filter(network %in% input$network)
+    # }
   })
   
   # Create filtered predicted rasters ----
   raster_predicted_data <- reactive({
-    req(input$toggle, input$network, input$options)
+    req(#input$toggle, 
+        input$network, input$options)
     
     raster_list <- all_data$raster_data %>%
       dplyr::filter(estimate %in% c("Probability", "Mean"))
     
     # message("view chosen raster dataset")
     
-    if (input$toggle == "Marine Park") {
+    # if (input$toggle == "Marine Park") {
       req(input$marine_park)  # Ensure marine_park input is selected
       raster_list %>%
         dplyr::filter(network %in% input$network) %>%
         dplyr::filter(marine_park %in% input$marine_park) %>%
         dplyr::filter(metric %in% input$options) #%>% glimpse()
-    } else {
-      raster_list %>%
-        dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% paste(input$network, "Network")) %>%
-        dplyr::filter(metric %in% input$options) #%>% glimpse()
-    }
+    # } else {
+    #   raster_list %>%
+    #     dplyr::filter(network %in% input$network) %>%
+    #     dplyr::filter(marine_park %in% paste(input$network, "Network")) %>%
+    #     dplyr::filter(metric %in% input$options) #%>% glimpse()
+    # }
   })
   
   # Create filtered error rasters ----
   raster_error_data <- reactive({
-    req(input$toggle, input$network, input$options)
+    req(#input$toggle, 
+        input$network, input$options)
     
     raster_list <- all_data$raster_data %>%
       dplyr::filter(estimate %in% c("Error"))
     
-    if (input$toggle == "Marine Park") {
+    # if (input$toggle == "Marine Park") {
       req(input$marine_park)  # Ensure marine_park input is selected
       raster_list %>%
         dplyr::filter(network %in% input$network) %>%
         dplyr::filter(marine_park %in% input$marine_park) %>%
         dplyr::filter(metric %in% input$options)
-    } else {
-      raster_list %>%
-        dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% paste(input$network, "Network")) %>%
-        dplyr::filter(metric %in% input$options)
-    }
+    # } else {
+    #   raster_list %>%
+    #     dplyr::filter(network %in% input$network) %>%
+    #     dplyr::filter(marine_park %in% paste(input$network, "Network")) %>%
+    #     dplyr::filter(metric %in% input$options)
+    # }
   })
   
-  # output$fishnclips <- renderLeaflet({
-  #   
-  #   map.dat <- dat
-  #   
-  #   points <- metadata_filtered_data()
-  #   
-  #   boss.habitat.highlights.popups <- filter(map.dat, source %in% c("boss.habitat.highlights"))
-  #   bruv.habitat.highlights.popups <- filter(map.dat, source %in% c("bruv.habitat.highlights"))
-  #   fish.highlights.popups <- filter(map.dat, source %in% c("fish.highlights"))
-  #   threed.model.popups <- filter(map.dat, source %in% c("3d.model"))
-  #   image.popups <- filter(map.dat, source %in% c('image'))
-  #   
-  #   # Having this in the global.R script breaks now - make icons on server side
-  #   icon.bruv.habitat <- iconList(blue = makeIcon("images/marker_green.png", iconWidth = 40, iconHeight =40))
-  #   icon.boss.habitat <- iconList(blue = makeIcon("images/marker_pink.png", iconWidth = 40, iconHeight =40))
-  #   icon.fish <- iconList(blue = makeIcon("images/marker_yellow.png", iconWidth = 40, iconHeight =40))
-  #   icon.models <- iconList(blue = makeIcon("images/marker_purple.png", iconWidth = 40, iconHeight =40))
-  #   
-  #   leaflet <- leaflet() %>%
-  #     addProviderTiles('Esri.WorldImagery', group = "World Imagery") %>%
-  #     addTiles(group = "Open Street Map")%>%
-  #     addControl(html = html_legend, position = "bottomleft") %>%
-  #     # flyToBounds(lng1, lat1, lng2, lat2)%>%
-  #     fitBounds(
-  #       lng1 = min(points$longitude_dd), lat1 = min(points$latitude_dd),
-  #       lng2 = max(points$longitude_dd), lat2 = max(points$latitude_dd)
-  #     ) %>%
-  #     
-  #     # stereo-BRUV habitat videos
-  #     addMarkers(data=bruv.habitat.highlights.popups,
-  #                icon = icon.bruv.habitat,
-  #                popup = bruv.habitat.highlights.popups$popup,
-  #                #label = bruv.habitat.highlights.popups$sample,
-  #                clusterOptions = markerClusterOptions(iconCreateFunction =
-  #                                                        JS("
-  #                                         function(cluster) {
-  #                                            return new L.DivIcon({
-  #                                              html: '<div style=\"background-color:rgba(124, 248, 193, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
-  #                                              className: 'marker-cluster'
-  #                                            });
-  #                                          }")),
-  #                group="BRUV Habitat imagery",
-  #                popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
-  #     
-  #     # BOSS habitat videos
-  #     addMarkers(data=boss.habitat.highlights.popups,
-  #                icon = icon.boss.habitat,
-  #                popup = boss.habitat.highlights.popups$popup,
-  #                #label = boss.habitat.highlights.popups$sample,
-  #                clusterOptions = markerClusterOptions(iconCreateFunction =
-  #                                                        JS("
-  #                                         function(cluster) {
-  #                                            return new L.DivIcon({
-  #                                              html: '<div style=\"background-color:rgba(248, 124, 179, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
-  #                                              className: 'marker-cluster'
-  #                                            });
-  #                                          }")),
-  #                group="BOSS Habitat imagery",
-  #                popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
-  #     
-  #     # stereo-BRUV fish videos
-  #     addMarkers(data=fish.highlights.popups,
-  #                icon = icon.fish,
-  #                popup = fish.highlights.popups$popup,
-  #                clusterOptions = markerClusterOptions(iconCreateFunction =
-  #                                                        JS("
-  #                                         function(cluster) {
-  #                                            return new L.DivIcon({
-  #                                              html: '<div style=\"background-color:rgba(241, 248, 124,0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
-  #                                              className: 'marker-cluster'
-  #                                            });
-  #                                          }")),
-  #                group="Fish highlights",
-  #                popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
-  #     
-  #     # 3D models
-  #     addMarkers(data=threed.model.popups,
-  #                icon = icon.models,
-  #                popup = threed.model.popups$popup,
-  #                clusterOptions = markerClusterOptions(iconCreateFunction =
-  #                                                        JS("
-  #                                         function(cluster) {
-  #                                            return new L.DivIcon({
-  #                                              html: '<div style=\"background-color:rgba(131, 124, 248,0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
-  #                                              className: 'marker-cluster'
-  #                                            });
-  #                                          }")),
-  #                group="3D models",
-  #                popupOptions=c(closeButton = TRUE, minWidth = 0,maxWidth = 700)
-  #     )%>%
-  #     
-  #     
-  #     # Ngari Capes Marine Parks
-  #     addPolygons(data = ngari.mp, weight = 1, color = "black",
-  #                 fillOpacity = 0.8, fillColor = "#7bbc63",
-  #                 group = "State Marine Parks", label=ngari.mp$Name)%>%
-  #     
-  #     # State Marine Parks
-  #     addPolygons(data = state.mp, weight = 1, color = "black",
-  #                 fillOpacity = 0.8, fillColor = ~state.pal(zone),
-  #                 group = "State Marine Parks", label=state.mp$COMMENTS)%>%
-  #     
-  #     # Add a legend
-  #     addLegend(pal = state.pal, values = state.mp$zone, opacity = 1,
-  #               title="State Zones",
-  #               position = "bottomright", group = "State Marine Parks")%>%
-  #     
-  #     # Commonwealth Marine Parks
-  #     addPolygons(data = commonwealth.mp, weight = 1, color = "black",
-  #                 fillOpacity = 0.8, fillColor = ~commonwealth.pal(zone),
-  #                 group = "Australian Marine Parks", label=commonwealth.mp$ZoneName)%>%
-  #     
-  #     # Add a legend
-  #     addLegend(pal = commonwealth.pal, values = commonwealth.mp$zone, opacity = 1,
-  #               title="Australian Marine Park Zones",
-  #               position = "bottomright", group = "Australian Marine Parks")%>%
-  #     
-  #     addLayersControl(
-  #       baseGroups = c("World Imagery","Open Street Map"),
-  #       overlayGroups = c("Fish highlights",
-  #                         "BRUV Habitat imagery","BOSS Habitat imagery",
-  #                         "3D models",
-  #                         "State Marine Parks",
-  #                         "Australian Marine Parks"), options = layersControlOptions(collapsed = FALSE))
-  #   
-  #   return(leaflet)
-  #   
-  # })
-  # 
+  output$fishnclips <- renderLeaflet({
+
+    map.dat <- dat
+
+    points <- metadata_filtered_data()
+
+    boss.habitat.highlights.popups <- filter(map.dat, source %in% c("boss.habitat.highlights"))
+    bruv.habitat.highlights.popups <- filter(map.dat, source %in% c("bruv.habitat.highlights"))
+    fish.highlights.popups <- filter(map.dat, source %in% c("fish.highlights"))
+    threed.model.popups <- filter(map.dat, source %in% c("3d.model"))
+    image.popups <- filter(map.dat, source %in% c('image'))
+
+    # Having this in the global.R script breaks now - make icons on server side
+    icon.bruv.habitat <- iconList(blue = makeIcon("images/marker_green.png", iconWidth = 40, iconHeight =40))
+    icon.boss.habitat <- iconList(blue = makeIcon("images/marker_pink.png", iconWidth = 40, iconHeight =40))
+    icon.fish <- iconList(blue = makeIcon("images/marker_yellow.png", iconWidth = 40, iconHeight =40))
+    icon.models <- iconList(blue = makeIcon("images/marker_purple.png", iconWidth = 40, iconHeight =40))
+
+    leaflet <- leaflet() %>%
+      addProviderTiles('Esri.WorldImagery', group = "World Imagery") %>%
+      addTiles(group = "Open Street Map")%>%
+      addControl(html = html_legend, position = "bottomleft") %>%
+      # flyToBounds(lng1, lat1, lng2, lat2)%>%
+      fitBounds(
+        lng1 = min(points$longitude_dd), lat1 = min(points$latitude_dd),
+        lng2 = max(points$longitude_dd), lat2 = max(points$latitude_dd)
+      ) %>%
+
+      # stereo-BRUV habitat videos
+      addMarkers(data=bruv.habitat.highlights.popups,
+                 icon = icon.bruv.habitat,
+                 popup = bruv.habitat.highlights.popups$popup,
+                 #label = bruv.habitat.highlights.popups$sample,
+                 clusterOptions = markerClusterOptions(iconCreateFunction =
+                                                         JS("
+                                          function(cluster) {
+                                             return new L.DivIcon({
+                                               html: '<div style=\"background-color:rgba(124, 248, 193, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
+                                               className: 'marker-cluster'
+                                             });
+                                           }")),
+                 group="BRUV Habitat imagery",
+                 popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
+
+      # BOSS habitat videos
+      addMarkers(data=boss.habitat.highlights.popups,
+                 icon = icon.boss.habitat,
+                 popup = boss.habitat.highlights.popups$popup,
+                 #label = boss.habitat.highlights.popups$sample,
+                 clusterOptions = markerClusterOptions(iconCreateFunction =
+                                                         JS("
+                                          function(cluster) {
+                                             return new L.DivIcon({
+                                               html: '<div style=\"background-color:rgba(248, 124, 179, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
+                                               className: 'marker-cluster'
+                                             });
+                                           }")),
+                 group="BOSS Habitat imagery",
+                 popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
+
+      # stereo-BRUV fish videos
+      addMarkers(data=fish.highlights.popups,
+                 icon = icon.fish,
+                 popup = fish.highlights.popups$popup,
+                 clusterOptions = markerClusterOptions(iconCreateFunction =
+                                                         JS("
+                                          function(cluster) {
+                                             return new L.DivIcon({
+                                               html: '<div style=\"background-color:rgba(241, 248, 124,0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
+                                               className: 'marker-cluster'
+                                             });
+                                           }")),
+                 group="Fish highlights",
+                 popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
+
+      # 3D models
+      addMarkers(data=threed.model.popups,
+                 icon = icon.models,
+                 popup = threed.model.popups$popup,
+                 clusterOptions = markerClusterOptions(iconCreateFunction =
+                                                         JS("
+                                          function(cluster) {
+                                             return new L.DivIcon({
+                                               html: '<div style=\"background-color:rgba(131, 124, 248,0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
+                                               className: 'marker-cluster'
+                                             });
+                                           }")),
+                 group="3D models",
+                 popupOptions=c(closeButton = TRUE, minWidth = 0,maxWidth = 700)
+      )%>%
+
+
+      # Ngari Capes Marine Parks
+      addPolygons(data = ngari.mp, weight = 1, color = "black",
+                  fillOpacity = 0.8, fillColor = "#7bbc63",
+                  group = "State Marine Parks", label=ngari.mp$Name)%>%
+
+      # State Marine Parks
+      addPolygons(data = state.mp, weight = 1, color = "black",
+                  fillOpacity = 0.8, fillColor = ~state.pal(zone),
+                  group = "State Marine Parks", label=state.mp$COMMENTS)%>%
+
+      # Add a legend
+      addLegend(pal = state.pal, values = state.mp$zone, opacity = 1,
+                title="State Zones",
+                position = "bottomright", group = "State Marine Parks")%>%
+
+      # Commonwealth Marine Parks
+      addPolygons(data = commonwealth.mp, weight = 1, color = "black",
+                  fillOpacity = 0.8, fillColor = ~commonwealth.pal(zone),
+                  group = "Australian Marine Parks", label=commonwealth.mp$ZoneName)%>%
+
+      # Add a legend
+      addLegend(pal = commonwealth.pal, values = commonwealth.mp$zone, opacity = 1,
+                title="Australian Marine Park Zones",
+                position = "bottomright", group = "Australian Marine Parks")%>%
+
+      addLayersControl(
+        baseGroups = c("World Imagery","Open Street Map"),
+        overlayGroups = c("Fish highlights",
+                          "BRUV Habitat imagery","BOSS Habitat imagery",
+                          "3D models",
+                          "State Marine Parks",
+                          "Australian Marine Parks"), options = layersControlOptions(collapsed = FALSE))
+
+    return(leaflet)
+
+  })
+
   # Fish images ----
   # Network image
   output$ui_network <- renderUI({
@@ -507,8 +567,8 @@ server <- function(input, output, session) {
     
     req(input$marine_park)
     
-    park <- stringr::str_replace_all(tolower(input$marine_park), c(" marine park" = "", " " = ".", "-" = ".")) %>%
-      glimpse
+    park <- stringr::str_replace_all(tolower(input$marine_park), c(" marine park" = "", " " = ".", "-" = ".")) #%>%
+      #glimpse
     
     div(
       style = "width: 100%; height: 200px; overflow: hidden; position: relative;",
@@ -522,67 +582,149 @@ server <- function(input, output, session) {
   
   # Summary data for the Valuebox text ----
   summary_data <- reactive({
-    req(input$toggle, input$network)
+    req(#input$toggle, 
+        input$network)
     
     stats <- all_data$stats
     
-    if (input$toggle == "Marine Park") {
+    # TODO I need to add ecosystemsubcomponent to this
+    
+    # if (input$toggle == "Marine Park") {
       req(input$marine_park)  # Ensure marine_park input is selected
       stats %>%
         dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% input$marine_park)
-    } else {
-      stats %>%
-        dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% paste(input$network, "Network"))
+        dplyr::filter(marine_park %in% input$marine_park) %>%
+        dplyr::filter(ecosystem_component %in% input$ecosystemsubcomponent)
+    # } else {
+    #   stats %>%
+    #     dplyr::filter(network %in% input$network) %>%
+    #     dplyr::filter(marine_park %in% paste(input$network, "Network"))
+    # }
+  })
+  
+  # Number of individuals counted valuebox ----
+  output$individuals_counted <- renderText({
+    
+    data <- summary_data() %>% 
+      filter(metric %in% "individuals_counted")
+    
+    unique(data$value)
+    
+  })
+  
+  # Number of individuals counted title ----
+  output$individuals_counted_title <- renderText({
+    
+    if(input$ecosystemsubcomponent %in% "Demersal fish"){
+      title <- "Fish counted"
+    } else if(input$ecosystemsubcomponent %in% "Mobile macro invertebrates"){
+      title <- "Mobile macro invertebrates observed"
+    }
+    
+    title
+  })
+  
+  # Individuals counted icon ----
+  output$dynamic_icon1 <- renderUI({
+    if (input$ecosystemsubcomponent %in% "Demersal fish") {
+      icon("fish", class = "fa-2x")  # Font Awesome icon
+    } else if (input$ecosystemsubcomponent %in% "Mobile macro invertebrates") {
+      tags$img(src = "lobster-icon.svg", height = "80px")
     }
   })
   
-  # Number of fish counted ----
-  output$fish_counted <- renderText({
+  # Number of species valuebox ----
+  output$number_species <- renderText({
+    data <- summary_data() %>% 
+      filter(metric %in% "number_species")
     
-    data <- summary_data() %>% filter(metric %in% "fish_counted")
-    unique(data$value)
-    
-  })
-  
-  # Number of fish species ----
-  output$fish_species <- renderText({
-    data <- summary_data() %>% filter(metric %in% "fish_species")
     unique(data$value)
   })
   
-  # Number of BRUVs deployed ----
-  output$bruvs_deployed <- renderText({
-    data <- summary_data() %>% filter(metric %in% "bruvs_deployed")
+  # Number of species title ----
+  output$number_species_title <- renderText({
+    
+    if(input$ecosystemsubcomponent %in% "Demersal fish"){
+      title <- "Number of fish species identified"
+    } else if(input$ecosystemsubcomponent %in% "Mobile macro invertebrates"){
+      title <- "Number of mobile macro invertebrates species identified"
+    }
+    
+    title
+  })
+  
+  # Number of species icon ----
+  output$dynamic_icon2 <- renderUI({
+    if (input$ecosystemsubcomponent %in% "Demersal fish") {
+      icon("fish", class = "fa-2x")  # Font Awesome icon
+    } else if (input$ecosystemsubcomponent %in% "Mobile macro invertebrates") {
+      tags$img(src = "lobster-icon.svg", height = "80px")
+    }
+  })
+  
+  
+  # Number of samples----
+  output$samples_deployed <- renderText({
+    
+    data <- summary_data() %>% 
+      filter(metric %in% "samples_deployed")
+    
     unique(data$value)
   })
+  
+  # Number of samples title ----
+  output$samples_deployed_title <- renderText({
+    
+    if(input$ecosystemsubcomponent %in% "Demersal fish"){
+      title <- "stereo-BRUVs deployed"
+    } else if(input$ecosystemsubcomponent %in% "Mobile macro invertebrates"){
+      title <- "Lobster pots deployed"
+    }
+    
+    title
+  })
+  
+  # Samples icon ----
+  output$dynamic_icon3 <- renderUI({
+    if (input$ecosystemsubcomponent %in% "Demersal fish") {
+      tags$img(src = "stereo-BRUV_filled_transparent.png",
+          height = "80px",
+          style = "margin-left: 15px;") # Adjust the value as needed)
+    } else if (input$ecosystemsubcomponent %in% "Mobile macro invertebrates") {
+      tags$img(src = "lobster-icon.svg", height = "80px",
+               style = "margin-left: 15px;")
+    }
+  })
+  
+  
   
   depth_data <- reactive({
-    req(input$toggle, input$network)
+    req(#input$toggle, 
+        input$network)
     
     data <- all_data$synthesis_metadata
     
-    if (input$toggle == "Marine Park") {
+    # if (input$toggle == "Marine Park") {
       
       req(input$marine_park)  # Ensure marine_park input is selected
       
       data <- data %>%
         dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% input$marine_park)
+        dplyr::filter(marine_park %in% input$marine_park) %>%
+        dplyr::filter(ecosystem_component %in% input$ecosystemsubcomponent)
       
-    } else {
-      
-      data <- data %>%
-        dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% paste(input$network, "Network"))
-      
-    }
+    # } else {
+    #   
+    #   data <- data %>%
+    #     dplyr::filter(network %in% input$network) %>%
+    #     dplyr::filter(marine_park %in% paste(input$network, "Network"))
+    #   
+    # }
     
     data <- data %>%
       dplyr::group_by(network, marine_park) %>%
-      dplyr::summarise(average_depth = mean(depth_m), min_depth = min(depth_m), max_depth = max(depth_m))%>%
-      glimpse()
+      dplyr::summarise(average_depth = mean(depth_m), min_depth = min(depth_m), max_depth = max(depth_m))#%>%
+      #glimpse()
     
     data
   })
@@ -605,7 +747,7 @@ server <- function(input, output, session) {
     
     data <- all_data$synthesis_metadata
     
-    if (input$toggle == "Marine Park") {
+    # if (input$toggle == "Marine Park") {
       req(input$marine_park)  # Ensure marine_park input is selected
       
       # message("view conditional data marine park")
@@ -613,14 +755,14 @@ server <- function(input, output, session) {
       data <- data %>%
         dplyr::filter(network %in% input$network) %>%
         dplyr::filter(marine_park %in% input$marine_park)
-    } else {
-      
-      # message("view conditional data network")
-      
-      data <- data %>%
-        dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% paste(input$network, "Network"))
-    }
+    # } else {
+    #   
+    #   # message("view conditional data network")
+    #   
+    #   data <- data %>%
+    #     dplyr::filter(network %in% input$network) %>%
+    #     dplyr::filter(marine_park %in% paste(input$network, "Network"))
+    # }
     
     synthesis_id <- unique(data$synthesis_id)
     
@@ -644,26 +786,26 @@ server <- function(input, output, session) {
     
     data <- all_data$method_data
     
-    if (input$toggle == "Marine Park") {
+    # if (input$toggle == "Marine Park") {
       
       req(input$marine_park)  # Ensure marine_park input is selected
       
       data <- data %>%
         dplyr::filter(network %in% input$network) %>%
         dplyr::filter(marine_park_or_area %in% input$marine_park) %>%
-        dplyr::filter(ecosystem_condition %in% input$ecosystemsubcomponent) %>%
-        glimpse
-      
-    } else {
-      
-      data <- data %>%
-        dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(ecosystem_condition %in% input$ecosystemsubcomponent) %>%
-        dplyr::filter(marine_park_or_area %in% paste(input$network, "Network")) %>%
-        glimpse
-      
-    }
-    
+        dplyr::filter(ecosystem_condition %in% input$ecosystemsubcomponent) #%>%
+        #glimpse
+    #   
+    # } else {
+    #   
+    #   data <- data %>%
+    #     dplyr::filter(network %in% input$network) %>%
+    #     dplyr::filter(ecosystem_condition %in% input$ecosystemsubcomponent) %>%
+    #     dplyr::filter(marine_park_or_area %in% paste(input$network, "Network")) %>%
+    #     glimpse
+    #   
+    # }
+    # 
     # If data is empty or method is NA, return NULL
     if (nrow(data) == 0 || is.na(data$method)) {
       return(NULL)
@@ -731,23 +873,23 @@ server <- function(input, output, session) {
     
     data <- all_data$top_species
     
-    if (input$toggle == "Marine Park") {
+    # if (input$toggle == "Marine Park") {
       
       req(input$marine_park)  # Ensure marine_park input is selected
       
       data_filtered <- data %>%
         dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% input$marine_park) %>%
-        glimpse
-      
-    } else {
-      
-      data_filtered <- data %>%
-        dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% paste(input$network, "Network")) %>%
-        glimpse
-      
-    }
+        dplyr::filter(marine_park %in% input$marine_park)# %>%
+        #glimpse
+    #   
+    # } else {
+    #   
+    #   data_filtered <- data %>%
+    #     dplyr::filter(network %in% input$network) %>%
+    #     dplyr::filter(marine_park %in% paste(input$network, "Network")) %>%
+    #     glimpse
+    #   
+    # }
     
     p <-   ggplot2::ggplot(data_filtered, ggplot2::aes(x = reorder(display_name, total_number), y = total_number)) +
       ggplot2::geom_bar(stat = "identity", position = ggplot2::position_dodge()) +
@@ -767,7 +909,7 @@ server <- function(input, output, session) {
     
     data <- all_data$bubble_data
     
-    if (input$toggle == "Marine Park") {
+    # if (input$toggle == "Marine Park") {
       
       req(input$marine_park)  # Ensure marine_park input is selected
       
@@ -775,13 +917,13 @@ server <- function(input, output, session) {
         dplyr::filter(network %in% input$network) %>%
         dplyr::filter(marine_park %in% input$marine_park)
       
-    } else {
-      
-      data <- data %>%
-        dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% paste(input$network, "Network"))
-      
-    }
+    # } else {
+    #   
+    #   data <- data %>%
+    #     dplyr::filter(network %in% input$network) %>%
+    #     dplyr::filter(marine_park %in% paste(input$network, "Network"))
+    #   
+    # }
     
     choices <- data %>%
       dplyr::group_by(display_name) %>%
@@ -802,64 +944,58 @@ server <- function(input, output, session) {
   })
   
   
-  
-  output$species_map <- renderLeaflet({
+  # Create filtered error rasters ----
+  init_species_map <- reactive({
+    req(#input$toggle, 
+        input$network, input$marine_park)
     
-    points <- metadata_filtered_data()
-    
-    # Pre-filter the data for initial year
     data <- all_data$bubble_data %>%
       dplyr::filter(display_name %in% input$species)
     
     metadata <- all_data$synthesis_metadata
-    
-    if (input$toggle == "Marine Park") {
-      
-      req(input$marine_park)  # Ensure marine_park input is selected
-      
+    # # 
+    # # if (input$toggle == "Marine Park") {
+    #   req(input$marine_park)  # Ensure marine_park input is selected
       data <- data %>%
-        dplyr::filter(network %in% input$network) %>%
+        # dplyr::filter(network %in% input$network) %>%
         dplyr::filter(marine_park %in% input$marine_park)
-      
+
       metadata <- metadata %>%
-        dplyr::filter(network %in% input$network) %>%
+        # dplyr::filter(network %in% input$network) %>%
         dplyr::filter(marine_park %in% input$marine_park)
-      
-    } else {
-      
-      data <- data %>%
-        dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% paste(input$network, "Network"))
-      
-      metadata <- metadata %>%
-        dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% paste(input$network, "Network"))
-      
-    }
+    # #   
+    # # } else {
+    # #   data <- data %>%
+    # #     dplyr::filter(network %in% input$network) %>%
+    # #     dplyr::filter(marine_park %in% paste(input$network, "Network"))
+    # #   
+    # #   metadata <- metadata %>%
+    # #     dplyr::filter(network %in% input$network) %>%
+    # #     dplyr::filter(marine_park %in% paste(input$network, "Network"))
+    # # }
     
-    # message("combined data")
     data <- full_join(data, metadata) %>%
       replace_na(list(count = 0)) %>%
       mutate(count = as.numeric(count), year = str_sub(date_time, 1, 4))
     
-    max_ab <- ifelse(nrow(data) > 0, max(as.numeric(data$count), na.rm = TRUE), 1)
+    return(data)
     
-    min_year <- min(data$year)
+  })
+  
+  output$species_map <- renderLeaflet({
     
-    # data <- data %>%
-    # dplyr::filter(year %in% min_year)
+    data <- init_species_map()
     
-    overzero <- filter(data, count > 0)
-    equalzero <- filter(data, count == 0)
+    points_og <- metadata_filtered_data() %>%
+      dplyr::mutate(year = str_sub(date_time, 1, 4))
     
-    leaflet() %>%
+    
+    map <- leaflet() %>%
       addTiles() %>%
       fitBounds(
-        lng1 = min(data$longitude_dd), lat1 = min(data$latitude_dd),
-        lng2 = max(data$longitude_dd), lat2 = max(data$latitude_dd)
+        lng1 = min(points_og$longitude_dd), lat1 = min(points_og$latitude_dd),
+        lng2 = max(points_og$longitude_dd), lat2 = max(points_og$latitude_dd)
       ) %>%
-      
-      # Static polygons (they do not change)
       addPolygons(data = ngari.mp, weight = 1, color = "black",
                   fillOpacity = 0.8, fillColor = "#7bbc63",
                   group = "State Marine Parks", label = ngari.mp$Name) %>%
@@ -878,24 +1014,90 @@ server <- function(input, output, session) {
         position = "bottomright"
       ) %>%
       hideGroup("State Marine Parks") %>%
-      hideGroup("Australian Marine Parks") #%>%
-    # addCircleMarkers(
-    #   data = overzero, lat = ~latitude_dd, lng = ~longitude_dd,
-    #   radius = ~ (((count / max_ab) * 20)), fillOpacity = 0.5, stroke = FALSE,
-    #   label = ~ as.character(count), color = "green"
-    # ) %>%
-    # addCircleMarkers(
-    #   data = equalzero, lat = ~latitude_dd, lng = ~longitude_dd,
-    #   radius = 2, fillOpacity = 0.5, color = "white", stroke = FALSE,
-    #   label = ~ as.character(count)
-    # ) %>%
-    # add_legend(colors = c("white", "green", "green"),
-    #            labels = c(0, round(max_ab / 2), max_ab),
-    #            sizes = c(5, 20, 40),
-    #            title = "Abundance", group = "abundance"
-    # )
+      hideGroup("Australian Marine Parks")
+    
+    return(map)
     
   })
+  
+  # output$species_map <- renderLeaflet({
+  #   req(input$toggle, input$network)
+  # 
+  #   # Pre-filter the data for initial year
+  #   data <- all_data$bubble_data %>%
+  #     dplyr::filter(display_name %in% input$species)
+  # 
+  #   metadata <- all_data$synthesis_metadata
+  # 
+  #   if (input$toggle == "Marine Park") {
+  # 
+  #     req(input$marine_park, cancelOutput = TRUE)  # Ensure marine_park is valid
+  #     selected_marine_park <- ifelse(length(input$marine_park) > 0, input$marine_park, "Placeholder")  
+  # 
+  #     data <- data %>%
+  #       dplyr::filter(network %in% input$network) %>%
+  #       dplyr::filter(marine_park %in% input$selected_marine_park)
+  # 
+  #     metadata <- metadata %>%
+  #       dplyr::filter(network %in% input$network) %>%
+  #       dplyr::filter(marine_park %in% input$selected_marine_park)
+  # 
+  #   } else {
+  # 
+  #     data <- data %>%
+  #       dplyr::filter(network %in% input$network) %>%
+  #       dplyr::filter(marine_park %in% paste(input$network, "Network"))
+  # 
+  #     metadata <- metadata %>%
+  #       dplyr::filter(network %in% input$network) %>%
+  #       dplyr::filter(marine_park %in% paste(input$network, "Network"))
+  # 
+  #   }
+  # 
+  #   # message("combined data")
+  #   data <- full_join(data, metadata) %>%
+  #     replace_na(list(count = 0)) %>%
+  #     mutate(count = as.numeric(count), year = str_sub(date_time, 1, 4))
+  # 
+  #   max_ab <- ifelse(nrow(data) > 0, max(as.numeric(data$count), na.rm = TRUE), 1)
+  # 
+  #   min_year <- min(data$year)
+  # 
+  #   # data <- data %>%
+  #   # dplyr::filter(year %in% min_year)
+  # 
+  #   overzero <- filter(data, count > 0)
+  #   equalzero <- filter(data, count == 0)
+  # 
+  #   leaflet() %>%
+  #     addTiles() %>%
+  #     fitBounds(
+  #       lng1 = min(data$longitude_dd), lat1 = min(data$latitude_dd),
+  #       lng2 = max(data$longitude_dd), lat2 = max(data$latitude_dd)
+  #     ) %>%
+  #     #
+  #     # Static polygons (they do not change)
+  #     addPolygons(data = ngari.mp, weight = 1, color = "black",
+  #                 fillOpacity = 0.8, fillColor = "#7bbc63",
+  #                 group = "State Marine Parks", label = ngari.mp$Name) %>%
+  # 
+  #     addPolygons(data = state.mp, weight = 1, color = "black",
+  #                 fillOpacity = 0.8, fillColor = ~state.pal(zone),
+  #                 group = "State Marine Parks", label = state.mp$COMMENTS) %>%
+  # 
+  #     addPolygons(data = commonwealth.mp, weight = 1, color = "black",
+  #                 fillOpacity = 0.8, fillColor = ~commonwealth.pal(zone),
+  #                 group = "Australian Marine Parks", label = commonwealth.mp$ZoneName) %>%
+  # 
+  #     addLayersControl(
+  #       overlayGroups = c("Australian Marine Parks", "State Marine Parks"),
+  #       options = layersControlOptions(collapsed = FALSE),
+  #       position = "bottomright"
+  #     ) %>%
+  #     hideGroup("State Marine Parks") %>%
+  #     hideGroup("Australian Marine Parks")
+  # 
+  # })
   
   output$species_year_slider <- renderUI({
     
@@ -914,77 +1116,77 @@ server <- function(input, output, session) {
   observeEvent(input$species, {
     observeEvent(input$year, {
       # req(input$year)  # Ensure year is selected
-      
+
       data <- all_data$bubble_data %>%
         dplyr::filter(display_name %in% input$species)
-      
+
       metadata <- all_data$synthesis_metadata
-      
-      if (input$toggle == "Marine Park") {
-        
+
+      # if (input$toggle == "Marine Park") {
+
         req(input$marine_park)  # Ensure marine_park input is selected
-        
+
         data <- data %>%
           dplyr::filter(network %in% input$network) %>%
           dplyr::filter(marine_park %in% input$marine_park)
-        
+
         metadata <- metadata %>%
           dplyr::filter(network %in% input$network) %>%
           dplyr::filter(marine_park %in% input$marine_park)
-        
-      } else {
-        
-        data <- data %>%
-          dplyr::filter(network %in% input$network) %>%
-          dplyr::filter(marine_park %in% paste(input$network, "Network"))
-        
-        metadata <- metadata %>%
-          dplyr::filter(network %in% input$network) %>%
-          dplyr::filter(marine_park %in% paste(input$network, "Network"))
-        
-      }
-      
+
+      # } else {
+      # 
+      #   data <- data %>%
+      #     dplyr::filter(network %in% input$network) %>%
+      #     dplyr::filter(marine_park %in% paste(input$network, "Network"))
+      # 
+      #   metadata <- metadata %>%
+      #     dplyr::filter(network %in% input$network) %>%
+      #     dplyr::filter(marine_park %in% paste(input$network, "Network"))
+      # 
+      # }
+
       max_ab <- ifelse(nrow(data) > 0, max(as.numeric(data$count), na.rm = TRUE), 1)
-      
+
       # message("chosen year")
       # message(input$year)
-      
+
       message("combined species filtered data")
-      
+
       data <- full_join(data, metadata) %>%
         replace_na(list(count = 0)) %>%
         dplyr::mutate(count = as.numeric(count)) %>%
         dplyr::mutate(year = str_sub(date_time, 1, 4)) %>%
         # dplyr::filter(year %in% as.numeric(input$year)) %>%
         glimpse()
-      
+
       message("chosen year")
       chosen_year <- as.numeric(input$year) %>% glimpse()
-      
+
       message(unique(data$year))
-      
+
       message("data")
       year_dat <- data %>%
         dplyr::mutate(year = as.numeric(year)) %>%
         dplyr::filter(year %in% chosen_year) %>%
         glimpse()
-      
+
       # year_dat <- year_dat[year_dat$year == chosen_year,]
-      
+
       print(unique(year_dat$year))
-      
+
       message("overzero")
       overzero <- filter(year_dat, count > 0) %>% glimpse()
-      
+
       message("underzero")
       equalzero <- filter(year_dat, count %in% 0)
-      
-      
-        
-        
+
+
+
+
         leafletProxy("species_map") %>%
         clearMarkers() %>%
-          { 
+          {
             if (nrow(overzero) > 0) {
               addCircleMarkers(.,
                 data = overzero, lat = ~latitude_dd, lng = ~longitude_dd,
@@ -993,7 +1195,7 @@ server <- function(input, output, session) {
               )
             } else {.}
           } %>%
-          { 
+          {
             if (nrow(equalzero) > 0) {
               addCircleMarkers(.,
                 data = equalzero, lat = ~latitude_dd, lng = ~longitude_dd,
@@ -1002,21 +1204,7 @@ server <- function(input, output, session) {
               )
             } else {.}
           }
-        
-        
-        
-        # %>%
-        # addCircleMarkers(
-        #   data = overzero, lat = ~latitude_dd, lng = ~longitude_dd,
-        #   radius = ~ (((count / max_ab) * 20)), fillOpacity = 0.5, stroke = FALSE,
-        #   label = ~ as.character(count), color = "green"
-        # ) %>%
-        # addCircleMarkers(
-        #   data = equalzero, lat = ~latitude_dd, lng = ~longitude_dd,
-        #   radius = 2, fillOpacity = 0.5, color = "white", stroke = FALSE,
-        #   label = ~ as.character(count)
-        # )
-      
+
     })
   })
   
@@ -1024,21 +1212,21 @@ server <- function(input, output, session) {
     
     metadata <- all_data$synthesis_metadata
     
-    if (input$toggle == "Marine Park") {
+    # if (input$toggle == "Marine Park") {
       
       req(input$marine_park)  # Ensure marine_park input is selected
       
       metadata <- metadata %>%
         dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% input$marine_park)
+        dplyr::filter(marine_park %in% input$marine_park) 
       
-    } else {
-      
-      metadata <- metadata %>%
-        dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% paste(input$network, "Network"))
-      
-    }
+    # } else {
+    #   
+    #   metadata <- metadata %>%
+    #     dplyr::filter(network %in% input$network) %>%
+    #     dplyr::filter(marine_park %in% paste(input$network, "Network"))
+    #   
+    # }
     
     data <- metadata %>%
       dplyr::mutate(year = str_sub(date_time, 1, 4))
@@ -1076,99 +1264,40 @@ server <- function(input, output, session) {
     )
   })
   
-  # # Create assemblage bubble plot ----
-  # output$assemblage_map <- renderLeaflet({
-  # 
-  #   # points <- metadata_filtered_data()
-  # 
+  # filtered_data <- reactive({
+  #   req(input$assemblage, input$assemblage_year, input$network)  # Ensure required inputs exist
+  #
   #   assemblage_metric <- tolower(str_replace_all(input$assemblage, " ", "_"))
-  # 
+  #
   #   data <- all_data$metric_bubble_data %>%
   #     dplyr::filter(metric %in% assemblage_metric)
-  # 
+  #
   #   if (input$toggle == "Marine Park") {
-  # 
   #     req(input$marine_park)  # Ensure marine_park input is selected
-  # 
   #     data <- data %>%
   #       dplyr::filter(network %in% input$network) %>%
   #       dplyr::filter(marine_park %in% input$marine_park)
-  # 
   #   } else {
-  # 
   #     data <- data %>%
   #       dplyr::filter(network %in% input$network) %>%
   #       dplyr::filter(marine_park %in% paste(input$network, "Network"))
-  # 
   #   }
-  # 
+  #
+  #   data %>%
+  #     dplyr::filter(year %in% input$assemblage_year)
+  # })
+  #
+  # observeEvent(filtered_data(), {
+  #   data <- filtered_data()
+  #
   #   max_ab <- ifelse(nrow(data) > 0, max(data$value, na.rm = TRUE), 1)  # Avoid errors
-  # 
-  #   min_year <- min(data$year)
-  # 
-  #   # message("glimpse data")
-  # 
-  #   data <- data %>%
-  #     dplyr::filter(year %in% as.numeric(min_year)) #%>%
-  #   #glimpse()
-  # 
-  #   overzero <- filter(data, value  > 0)
-  #   equalzero <- filter(data, value  %in% 0) #%>%
-  #     # glimpse()
-  # 
-  #   # Initial Leaflet map ----
-  #   map <- leaflet(data) %>%
-  #     addTiles() %>%
-  # 
-  #     fitBounds(
-  #       lng1 = min(data$longitude_dd), lat1 = min(data$latitude_dd),
-  #       lng2 = max(data$longitude_dd), lat2 = max(data$latitude_dd)
-  #     ) %>%
-  # 
-  #     # Ngari Capes Marine Parks
-  #     addPolygons(data = ngari.mp, weight = 1, color = "black",
-  #                 fillOpacity = 0.8, fillColor = "#7bbc63",
-  #                 group = "State Marine Parks", label=ngari.mp$Name) %>%
-  # 
-  #     # State Marine Parks
-  #     addPolygons(data = state.mp, weight = 1, color = "black",
-  #                 fillOpacity = 0.8, fillColor = ~state.pal(zone),
-  #                 group = "State Marine Parks", label=state.mp$COMMENTS) %>%
-  # 
-  #     # Add a legend
-  #     addLegend(pal = state.pal, values = state.mp$zone, opacity = 1,
-  #               title="State Zones",
-  #               position = "bottomright", group = "State Marine Parks") %>%
-  # 
-  #     # Commonwealth Marine Parks
-  #     addPolygons(data = commonwealth.mp, weight = 1, color = "black",
-  #                 fillOpacity = 0.8, fillColor = ~commonwealth.pal(zone),
-  #                 group = "Australian Marine Parks", label=commonwealth.mp$ZoneName) %>%
-  # 
-  #     # Add a legend
-  #     addLegend(pal = commonwealth.pal, values = commonwealth.mp$zone, opacity = 1,
-  #               title="Australian Marine Park Zones",
-  #               position = "bottomright", group = "Australian Marine Parks") %>%
-  # 
-  #     addLayersControl(
-  #       overlayGroups = c("Australian Marine Parks",
-  #                         "State Marine Parks"),
-  #       options = layersControlOptions(collapsed = FALSE),
-  #       position = "bottomright"
-  #     )  %>%
-  #     hideGroup("State Marine Parks") %>%
-  #     hideGroup("Australian Marine Parks")%>%
-  #     hideGroup("FishNClips" )%>%
-  #     add_legend(colors = c("white", "green", "green"),
-  #                labels = c(0, round(max_ab / 2), max_ab),
-  #                sizes = c(5, 20, 40),
-  #                title = input$assemblage,
-  #                group = "abundance"
-  #     )
-  # 
-  # 
-  # 
-  # 
+  #
+  #   overzero <- dplyr::filter(data, value > 0)
+  #   equalzero <- dplyr::filter(data, value == 0)
+  #
+  #   map <- leafletProxy("assemblage_map") %>%
+  #     clearMarkers()
+  #
   #   if (nrow(overzero)) {
   #     map <- map %>%
   #       addCircleMarkers(
@@ -1177,7 +1306,7 @@ server <- function(input, output, session) {
   #         label = ~ as.character(value), color = "green"
   #       )
   #   }
-  # 
+  #
   #   if (nrow(equalzero)) {
   #     map <- map %>%
   #       addCircleMarkers(
@@ -1186,93 +1315,209 @@ server <- function(input, output, session) {
   #         label = ~ as.character(value)
   #       )
   #   }
-  # 
-  #   map
-  # 
   # })
   
-  # observeEvent(input$assemblage, {
-  #   observeEvent(input$assemblage_year, {
-  #     
-  #     # points <- metadata_filtered_data()
-  #     
-  #     assemblage_metric <- tolower(str_replace_all(input$assemblage, " ", "_"))
-  #     
-  #     data <- all_data$metric_bubble_data %>%
-  #       dplyr::filter(metric %in% assemblage_metric)
-  #     
-  #     if (input$toggle == "Marine Park") {
-  #       
-  #       req(input$marine_park)  # Ensure marine_park input is selected
-  #       
-  #       data <- data %>%
-  #         dplyr::filter(network %in% input$network) %>%
-  #         dplyr::filter(marine_park %in% input$marine_park)
-  #       
-  #     } else {
-  #       
-  #       data <- data %>%
-  #         dplyr::filter(network %in% input$network) %>%
-  #         dplyr::filter(marine_park %in% paste(input$network, "Network"))
-  #       
-  #     }
-  #     
-  #     max_ab <- ifelse(nrow(data) > 0, max(data$value, na.rm = TRUE), 1)  # Avoid errors
-  #     
-  #     data <- data %>%
-  #       dplyr::filter(year %in% input$assemblage_year)
-  #     
-  #     overzero <- filter(data, value > 0)
-  #     equalzero <- filter(data, value == 0)
-  #     
-  #     map <- leafletProxy("assemblage_map") %>%
-  #       clearMarkers()
-  #     
-  #     if (nrow(overzero)) {
-  #       map <- map %>%
-  #         addCircleMarkers(
-  #           data = overzero, lat = ~latitude_dd, lng = ~longitude_dd,
-  #           radius = ~ (((value / max_ab) * 20)), fillOpacity = 0.5, stroke = FALSE,
-  #           label = ~ as.character(value), color = "green"
-  #         )
-  #     }
-  #     
-  #     if (nrow(equalzero)) {
-  #       map <- map %>%
-  #         addCircleMarkers(
-  #           data = equalzero, lat = ~latitude_dd, lng = ~longitude_dd,
-  #           radius = 2, fillOpacity = 0.5, color = "white", stroke = FALSE,
-  #           label = ~ as.character(value)
-  #         )
-  #     }
-  #     
-  #     # %>%
-  #     #   clearMarkers() %>%
-  #     #   addCircleMarkers(
-  #     #     data = overzero, lat = ~latitude_dd, lng = ~longitude_dd,
-  #     #     radius = ~ (((count / max_ab) * 20)), fillOpacity = 0.5, stroke = FALSE,
-  #     #     label = ~ as.character(count), color = "green"
-  #     #   ) %>%
-  #     #   addCircleMarkers(
-  #     #     data = equalzero, lat = ~latitude_dd, lng = ~longitude_dd,
-  #     #     radius = 2, fillOpacity = 0.5, color = "white", stroke = FALSE,
-  #     #     label = ~ as.character(count)
-  #     #   )
-  #     
-  #   })
-  # })
+  # Create assemblage bubble plot ----
+  output$assemblage_map <- renderLeaflet({
+
+    # points <- metadata_filtered_data()
+    
+    points_og <- metadata_filtered_data() %>%
+      dplyr::mutate(year = str_sub(date_time, 1, 4))
+
+    assemblage_metric <- tolower(str_replace_all(input$assemblage, " ", "_"))
+
+    data <- all_data$metric_bubble_data %>%
+      dplyr::filter(metric %in% assemblage_metric)
+
+    # if (input$toggle == "Marine Park") {
+
+      req(input$marine_park)  # Ensure marine_park input is selected
+
+      data <- data %>%
+        # dplyr::filter(network %in% input$network) %>%
+        dplyr::filter(marine_park %in% input$marine_park)
+
+    # } else {
+# 
+#       data <- data %>%
+#         dplyr::filter(network %in% input$network) %>%
+#         dplyr::filter(marine_park %in% paste(input$network, "Network"))
+# 
+#     }
+
+    max_ab <- ifelse(nrow(data) > 0, max(data$value, na.rm = TRUE), 1)  # Avoid errors
+
+    min_year <- min(data$year)
+
+    # message("glimpse data")
+
+    data <- data %>%
+      dplyr::filter(year %in% as.numeric(min_year)) #%>%
+    #glimpse()
+
+    overzero <- filter(data, value  > 0)
+    equalzero <- filter(data, value  %in% 0) #%>%
+      # glimpse()
+
+    # Initial Leaflet map ----
+    map <- leaflet(data) %>%
+      addTiles() %>%
+
+      fitBounds(
+        lng1 = min(points_og$longitude_dd), lat1 = min(points_og$latitude_dd),
+        lng2 = max(points_og$longitude_dd), lat2 = max(points_og$latitude_dd)
+      ) %>%
+
+      # Ngari Capes Marine Parks
+      addPolygons(data = ngari.mp, weight = 1, color = "black",
+                  fillOpacity = 0.8, fillColor = "#7bbc63",
+                  group = "State Marine Parks", label=ngari.mp$Name) %>%
+
+      # State Marine Parks
+      addPolygons(data = state.mp, weight = 1, color = "black",
+                  fillOpacity = 0.8, fillColor = ~state.pal(zone),
+                  group = "State Marine Parks", label=state.mp$COMMENTS) %>%
+
+      # Add a legend
+      addLegend(pal = state.pal, values = state.mp$zone, opacity = 1,
+                title="State Zones",
+                position = "bottomright", group = "State Marine Parks") %>%
+
+      # Commonwealth Marine Parks
+      addPolygons(data = commonwealth.mp, weight = 1, color = "black",
+                  fillOpacity = 0.8, fillColor = ~commonwealth.pal(zone),
+                  group = "Australian Marine Parks", label=commonwealth.mp$ZoneName) %>%
+
+      # Add a legend
+      addLegend(pal = commonwealth.pal, values = commonwealth.mp$zone, opacity = 1,
+                title="Australian Marine Park Zones",
+                position = "bottomright", group = "Australian Marine Parks") %>%
+
+      addLayersControl(
+        overlayGroups = c("Australian Marine Parks",
+                          "State Marine Parks"),
+        options = layersControlOptions(collapsed = FALSE),
+        position = "bottomright"
+      )  %>%
+      hideGroup("State Marine Parks") %>%
+      hideGroup("Australian Marine Parks")%>%
+      hideGroup("FishNClips" )%>%
+      add_legend(colors = c("white", "green", "green"),
+                 labels = c(0, round(max_ab / 2), max_ab),
+                 sizes = c(5, 20, 40),
+                 title = input$assemblage,
+                 group = "abundance"
+      )
+
+
+
+
+    if (nrow(overzero)) {
+      map <- map %>%
+        addCircleMarkers(
+          data = overzero, lat = ~latitude_dd, lng = ~longitude_dd,
+          radius = ~ (((value / max_ab) * 20)), fillOpacity = 0.5, stroke = FALSE,
+          label = ~ as.character(value), color = "green"
+        )
+    }
+
+    if (nrow(equalzero)) {
+      map <- map %>%
+        addCircleMarkers(
+          data = equalzero, lat = ~latitude_dd, lng = ~longitude_dd,
+          radius = 2, fillOpacity = 0.5, color = "white", stroke = FALSE,
+          label = ~ as.character(value)
+        )
+    }
+
+    map
+
+  })
+  
+  observeEvent(input$assemblage, {
+    observeEvent(input$assemblage_year, {
+
+      # points <- metadata_filtered_data()
+
+      assemblage_metric <- tolower(str_replace_all(input$assemblage, " ", "_"))
+
+      data <- all_data$metric_bubble_data %>%
+        dplyr::filter(metric %in% assemblage_metric)
+
+      # if (input$toggle == "Marine Park") {
+
+        req(input$marine_park)  # Ensure marine_park input is selected
+
+        data <- data %>%
+          # dplyr::filter(network %in% input$network) %>%
+          dplyr::filter(marine_park %in% input$marine_park)
+
+      # } else {
+      # 
+      #   data <- data %>%
+      #     dplyr::filter(network %in% input$network) %>%
+      #     dplyr::filter(marine_park %in% paste(input$network, "Network"))
+      # 
+      # }
+
+      max_ab <- ifelse(nrow(data) > 0, max(data$value, na.rm = TRUE), 1)  # Avoid errors
+
+      data <- data %>%
+        dplyr::filter(year %in% input$assemblage_year)
+
+      overzero <- filter(data, value > 0)
+      equalzero <- filter(data, value == 0)
+
+      map <- leafletProxy("assemblage_map") %>%
+        clearMarkers()
+
+      if (nrow(overzero)) {
+        map <- map %>%
+          addCircleMarkers(
+            data = overzero, lat = ~latitude_dd, lng = ~longitude_dd,
+            radius = ~ (((value / max_ab) * 20)), fillOpacity = 0.5, stroke = FALSE,
+            label = ~ as.character(value), color = "green"
+          )
+      }
+
+      if (nrow(equalzero)) {
+        map <- map %>%
+          addCircleMarkers(
+            data = equalzero, lat = ~latitude_dd, lng = ~longitude_dd,
+            radius = 2, fillOpacity = 0.5, color = "white", stroke = FALSE,
+            label = ~ as.character(value)
+          )
+      }
+
+      # %>%
+      #   clearMarkers() %>%
+      #   addCircleMarkers(
+      #     data = overzero, lat = ~latitude_dd, lng = ~longitude_dd,
+      #     radius = ~ (((count / max_ab) * 20)), fillOpacity = 0.5, stroke = FALSE,
+      #     label = ~ as.character(count), color = "green"
+      #   ) %>%
+      #   addCircleMarkers(
+      #     data = equalzero, lat = ~latitude_dd, lng = ~longitude_dd,
+      #     radius = 2, fillOpacity = 0.5, color = "white", stroke = FALSE,
+      #     label = ~ as.character(count)
+      #   )
+
+    })
+  })
   
   
   # Species specific temporal plots ----
   output$species_temporal <- renderPlot({
-    req(input$toggle, input$network, input$options)
+    req(#input$toggle, 
+        input$network, input$options)
     
     data <- all_data$temporal_data %>%
       dplyr::filter(display_name %in% input$species) %>%
       dplyr::mutate(year = substr(date_midpoint, 1, 4)) %>%
       dplyr::mutate(year = as.numeric(year))
     
-    if (input$toggle == "Marine Park") {
+    # if (input$toggle == "Marine Park") {
       
       req(input$marine_park)  # Ensure marine_park input is selected
       
@@ -1280,13 +1525,13 @@ server <- function(input, output, session) {
         dplyr::filter(network %in% input$network) %>%
         dplyr::filter(marine_park %in% input$marine_park)
       
-    } else {
-      
-      data <- data %>%
-        dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% paste(input$network, "Network"))
-      
-    }
+    # } else {
+    #   
+    #   data <- data %>%
+    #     dplyr::filter(network %in% input$network) %>%
+    #     dplyr::filter(marine_park %in% paste(input$network, "Network"))
+    #   
+    # }
     
     
     # Get unique depth classes
@@ -1374,42 +1619,45 @@ server <- function(input, output, session) {
   
   # Create first map for Dashboard ----
   output$map <- renderLeaflet({
-    
+
     points <- metadata_filtered_data() %>%
       dplyr::mutate(year = str_sub(date_time, 1, 4))
     
+    points_og <- metadata_filtered_data() %>%
+      dplyr::mutate(year = str_sub(date_time, 1, 4))
+
     min_year <- min(points$year)
-    
+
     points <- points %>%
       dplyr::filter(year %in% min_year)
-    
+
     if (nrow(points) == 0) {
       points <- tibble(
         latitude_dd = c(-25.0, -25.1),
         longitude_dd = c(133.0, 133.1)
       )
     }
-    
+
     icon <- iconList(blue = makeIcon("images/marker_blue.png", iconWidth = 40, iconHeight =40))
-    
+
     map.dat <- dat
-    
+
     boss.habitat.highlights.popups <- filter(map.dat, source %in% c("boss.habitat.highlights"))
     bruv.habitat.highlights.popups <- filter(map.dat, source %in% c("bruv.habitat.highlights"))
     fish.highlights.popups <- filter(map.dat, source %in% c("fish.highlights"))
     threed.model.popups <- filter(map.dat, source %in% c("3d.model"))
     image.popups <- filter(map.dat, source %in% c('image'))
-    
+
     # Having this in the global.R script breaks now - make icons on server side
     icon.bruv.habitat <- iconList(blue = makeIcon("images/marker_green.png", iconWidth = 40, iconHeight =40))
     icon.boss.habitat <- iconList(blue = makeIcon("images/marker_pink.png", iconWidth = 40, iconHeight =40))
     icon.fish <- iconList(blue = makeIcon("images/marker_yellow.png", iconWidth = 40, iconHeight =40))
     icon.models <- iconList(blue = makeIcon("images/marker_purple.png", iconWidth = 40, iconHeight =40))
-    
+
     # Initial Leaflet map ----
     map <- leaflet(points) %>%
       addTiles() %>%
-      
+
       addMarkers(data = points, ~longitude_dd, ~latitude_dd,
                  icon = icon,
                  clusterOptions = markerClusterOptions(iconCreateFunction =
@@ -1422,38 +1670,38 @@ server <- function(input, output, session) {
                                          }")),
                  group = "Sampling locations"
       )%>%
-      
-      
+
+
       fitBounds(
-        lng1 = min(points$longitude_dd), lat1 = min(points$latitude_dd),
-        lng2 = max(points$longitude_dd), lat2 = max(points$latitude_dd)
+        lng1 = min(points_og$longitude_dd), lat1 = min(points_og$latitude_dd),
+        lng2 = max(points_og$longitude_dd), lat2 = max(points_og$latitude_dd)
       ) %>%
-      
+
       # Ngari Capes Marine Parks
       addPolygons(data = ngari.mp, weight = 1, color = "black",
                   fillOpacity = 0.8, fillColor = "#7bbc63",
                   group = "State Marine Parks", label=ngari.mp$Name) %>%
-      
+
       # State Marine Parks
       addPolygons(data = state.mp, weight = 1, color = "black",
                   fillOpacity = 0.8, fillColor = ~state.pal(zone),
                   group = "State Marine Parks", label=state.mp$COMMENTS) %>%
-      
+
       # Add a legend
       addLegend(pal = state.pal, values = state.mp$zone, opacity = 1,
                 title="State Zones",
                 position = "bottomright", group = "State Marine Parks") %>%
-      
+
       # Commonwealth Marine Parks
       addPolygons(data = commonwealth.mp, weight = 1, color = "black",
                   fillOpacity = 0.8, fillColor = ~commonwealth.pal(zone),
                   group = "Australian Marine Parks", label=commonwealth.mp$ZoneName) %>%
-      
+
       # Add a legend
       addLegend(pal = commonwealth.pal, values = commonwealth.mp$zone, opacity = 1,
                 title="Australian Marine Park Zones",
                 position = "bottomright", group = "Australian Marine Parks") %>%
-      
+
       # stereo-BRUV habitat videos
       addMarkers(data=bruv.habitat.highlights.popups,
                  icon = icon.bruv.habitat,
@@ -1469,7 +1717,7 @@ server <- function(input, output, session) {
                                          }")),
                  group = "FishNClips",
                  popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
-      
+
       # BOSS habitat videos
       addMarkers(data=boss.habitat.highlights.popups,
                  icon = icon.boss.habitat,
@@ -1485,7 +1733,7 @@ server <- function(input, output, session) {
                                          }")),
                  group = "FishNClips",
                  popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
-      
+
       # stereo-BRUV fish videos
       addMarkers(data=fish.highlights.popups,
                  icon = icon.fish,
@@ -1500,7 +1748,7 @@ server <- function(input, output, session) {
                                          }")),
                  group = "FishNClips",
                  popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
-      
+
       # 3D models
       addMarkers(data=threed.model.popups,
                  icon = icon.models,
@@ -1516,9 +1764,9 @@ server <- function(input, output, session) {
                  group = "FishNClips",
                  popupOptions=c(closeButton = TRUE, minWidth = 0,maxWidth = 700)
       )%>%
-      
+
       addControl(html = html_legend, position = "bottomleft", className = "fishnclips-legend-map") %>%
-      
+
       addLayersControl(
         # baseGroups = c("OSM (default)", "World Imagery (satellite)"),
         overlayGroups = c("Australian Marine Parks",
@@ -1532,16 +1780,16 @@ server <- function(input, output, session) {
       hideGroup("Australian Marine Parks")%>%
       hideGroup("FishNClips")
   })
-  
+
   observeEvent(input$map_year, {
-    
+
     data <- all_data$synthesis_metadata %>%
       dplyr::mutate(year = as.numeric(str_sub(date_time, 1, 4))) %>%
       dplyr::filter(year %in% as.numeric(input$map_year)) %>%
       glimpse()
-    
+
     icon <- iconList(blue = makeIcon("images/marker_blue.png", iconWidth = 40, iconHeight =40))
-    
+
     map <- leafletProxy("map") %>%
       clearMarkers() %>%
       clearGroup(group = "Sampling locations") %>%
@@ -1556,58 +1804,61 @@ server <- function(input, output, session) {
                                            });
                                          }")),
                  group = "Sampling locations")
-    
+
     map
-    
+
   })
-  
+
   # Create species iframe
   output$iframe <- renderUI({
-    
+
     dat <- all_data$foa_codes[display_name %in% c(input$species)] %>%
       dplyr::distinct(url) %>%
       dplyr::pull("url")
-    
+
     frame <- tags$iframe(src = paste0(dat),
                          style = "width: 100%; height: 100vh; border: none;",
                          onload = "resizeIframe(this)"
     )
     frame
-    
+
   })
-  
-  
-  # Create map for Dashboard ----
+
+
+  # # Create map for Dashboard ----
   output$australia_map <- renderLeaflet({
     # req(input$toggle, input$network, input$options)
     
+    points_og <- metadata_filtered_data() %>%
+      dplyr::mutate(year = str_sub(date_time, 1, 4))
+
     points <- metadata_filtered_data()
-    
+
     if (nrow(points) == 0) {
       points <- tibble(
         latitude_dd = c(-25.0, -25.1),
         longitude_dd = c(133.0, 133.1)
       )
     }
-    
+
     metric_title <- unique(raster_predicted_data()$metric)
-    
+
     icon <- iconList(blue = makeIcon("images/marker_blue.png", iconWidth = 40, iconHeight =40))
-    
+
     map.dat <- dat
-    
+
     boss.habitat.highlights.popups <- filter(map.dat, source %in% c("boss.habitat.highlights"))
     bruv.habitat.highlights.popups <- filter(map.dat, source %in% c("bruv.habitat.highlights"))
     fish.highlights.popups <- filter(map.dat, source %in% c("fish.highlights"))
     threed.model.popups <- filter(map.dat, source %in% c("3d.model"))
     image.popups <- filter(map.dat, source %in% c('image'))
-    
+
     # Having this in the global.R script breaks now - make icons on server side
     icon.bruv.habitat <- iconList(blue = makeIcon("images/marker_green.png", iconWidth = 40, iconHeight =40))
     icon.boss.habitat <- iconList(blue = makeIcon("images/marker_pink.png", iconWidth = 40, iconHeight =40))
     icon.fish <- iconList(blue = makeIcon("images/marker_yellow.png", iconWidth = 40, iconHeight =40))
     icon.models <- iconList(blue = makeIcon("images/marker_purple.png", iconWidth = 40, iconHeight =40))
-    
+
     # Initial Leaflet map ----
     map <- leaflet(points) %>%
       addTiles() %>%
@@ -1623,37 +1874,37 @@ server <- function(input, output, session) {
                                          }")),
                  group = "Sampling locations"
       )%>%
-      
+
       fitBounds(
-        lng1 = min(points$longitude_dd), lat1 = min(points$latitude_dd),
-        lng2 = max(points$longitude_dd), lat2 = max(points$latitude_dd)
+        lng1 = min(points_og$longitude_dd), lat1 = min(points_og$latitude_dd),
+        lng2 = max(points_og$longitude_dd), lat2 = max(points_og$latitude_dd)
       ) %>%
-      
+
       # Ngari Capes Marine Parks
       addPolygons(data = ngari.mp, weight = 1, color = "black",
                   fillOpacity = 0.8, fillColor = "#7bbc63",
                   group = "State Marine Parks", label=ngari.mp$Name) %>%
-      
+
       # State Marine Parks
       addPolygons(data = state.mp, weight = 1, color = "black",
                   fillOpacity = 0.8, fillColor = ~state.pal(zone),
                   group = "State Marine Parks", label=state.mp$COMMENTS) %>%
-      
+
       # Add a legend
       addLegend(pal = state.pal, values = state.mp$zone, opacity = 1,
                 title="State Zones",
                 position = "bottomright", group = "State Marine Parks") %>%
-      
+
       # Commonwealth Marine Parks
       addPolygons(data = commonwealth.mp, weight = 1, color = "black",
                   fillOpacity = 0.8, fillColor = ~commonwealth.pal(zone),
                   group = "Australian Marine Parks", label=commonwealth.mp$ZoneName) %>%
-      
+
       # Add a legend
       addLegend(pal = commonwealth.pal, values = commonwealth.mp$zone, opacity = 1,
                 title="Australian Marine Park Zones",
                 position = "bottomright", group = "Australian Marine Parks") %>%
-      
+
       # stereo-BRUV habitat videos
       addMarkers(data=bruv.habitat.highlights.popups,
                  icon = icon.bruv.habitat,
@@ -1669,7 +1920,7 @@ server <- function(input, output, session) {
                                          }")),
                  group = "FishNClips",
                  popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
-      
+
       # BOSS habitat videos
       addMarkers(data=boss.habitat.highlights.popups,
                  icon = icon.boss.habitat,
@@ -1685,7 +1936,7 @@ server <- function(input, output, session) {
                                          }")),
                  group = "FishNClips",
                  popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
-      
+
       # stereo-BRUV fish videos
       addMarkers(data=fish.highlights.popups,
                  icon = icon.fish,
@@ -1700,7 +1951,7 @@ server <- function(input, output, session) {
                                          }")),
                  group = "FishNClips",
                  popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
-      
+
       # 3D models
       addMarkers(data=threed.model.popups,
                  icon = icon.models,
@@ -1716,9 +1967,9 @@ server <- function(input, output, session) {
                  group = "FishNClips",
                  popupOptions=c(closeButton = TRUE, minWidth = 0,maxWidth = 700)
       )%>%
-      
+
       addControl(html = html_legend, position = "bottomleft", className = "fishnclips-legend-aus") %>%
-      
+
       addLayersControl(
         # baseGroups = c("OSM (default)", "World Imagery (satellite)"),
         overlayGroups = c("Australian Marine Parks",
@@ -1731,14 +1982,14 @@ server <- function(input, output, session) {
       hideGroup("State Marine Parks") %>%
       hideGroup("Australian Marine Parks")%>%
       hideGroup("FishNClips")
-    
-    
+
+
     # Add tiles only if raster_predicted_data() has valid data ----
     if (!is.null(raster_predicted_data()) && nrow(raster_predicted_data()) > 0) {
-      
+
       # message(paste0("raster available:", unique(raster_predicted_data()$tile_service_url)))
       # Blue = low, yellow = high
-      
+
       map <- map %>%
         addTiles(
           urlTemplate = paste(unique(raster_predicted_data()$tile_service_url)),
@@ -1761,7 +2012,7 @@ server <- function(input, output, session) {
           group = "Predicted"
         )
     }
-    
+
     # Add tiles only if raster_error_data() has valid data ----
     if (!is.null(raster_error_data()) && nrow(raster_error_data()) > 0) {
       map <- map %>%
@@ -1772,7 +2023,7 @@ server <- function(input, output, session) {
         ) %>%
         hideGroup("Error")  # Ensure "Error" is hidden initially
     }
-    
+
     # Add custom radio buttons with title as a control ----
     map %>%
       htmlwidgets::onRender(
@@ -1810,7 +2061,7 @@ server <- function(input, output, session) {
         )
       )
   })
-  
+
   observe({
     input$australia_map_groups
     shinyjs::runjs(sprintf("
@@ -1821,7 +2072,7 @@ server <- function(input, output, session) {
     }
   ", jsonlite::toJSON(input$australia_map_groups)))
   })
-  
+
   observe({
     input$map_groups
     shinyjs::runjs(sprintf("
@@ -1832,14 +2083,14 @@ server <- function(input, output, session) {
     }
   ", jsonlite::toJSON(input$map_groups)))
   })
-  
-  
+
+
   # Observe the radio button input and update the map ----
   observe({
     req(input$layer_toggle)  # Ensure toggle input is available
-    
+
     map_proxy <- leafletProxy("australia_map")
-    
+
     # Show/hide layers based on the selected radio button
     if (input$layer_toggle == "Predicted") {
       map_proxy %>%

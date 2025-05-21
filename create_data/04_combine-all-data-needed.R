@@ -30,6 +30,10 @@ dbca_googlesheet_url <- "https://docs.google.com/spreadsheets/d/1OuOt80TvJBCMPLR
 foa_species_codes <- googlesheets4::read_sheet(dbca_googlesheet_url, sheet = "fishes_of_australia") %>%
   CheckEM::clean_names() %>%
   dplyr::select(-c(number)) %>%
+  dplyr::mutate(species = case_when(
+    genus %in% "Ophthalmolepis" & species %in% "lineolata" ~ "lineolatus",
+    .default = as.character(species)
+  )) %>%
   dplyr::mutate(scientific_name = paste(genus, species, sep = " ")) %>%
   dplyr::left_join(CheckEM::australia_life_history) %>%
   dplyr::mutate(display_name = paste0(scientific_name, " (", australian_common_name, ")")) %>%
@@ -43,7 +47,7 @@ foa_genus_codes <- readRDS("data/app/genus_foa_codes.RDS") %>%
   dplyr::select(display_name, url)
 
 foa_codes <- bind_rows(foa_species_codes, foa_genus_codes) %>%
-  dplyr::select(display_name, url)
+  dplyr::select(display_name, url) 
 
 # Get method data source----
 method_data <- read_sheet("https://docs.google.com/spreadsheets/d/1Iplohv6mM-CnpE6uYBi4uQnuhCyZMNpCRMSJFFnJxjM/edit?usp=sharing",
