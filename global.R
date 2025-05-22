@@ -19,6 +19,7 @@ library(ggforce)
 # library(RGraphics)
 library(ggimage) # for adding icons
 library(shinyalert)
+library(sf)
 
 # Load the data
 # dropdown_data <- read.csv(here::here("data/dropdowns.csv"), stringsAsFactors = FALSE)

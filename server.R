@@ -1782,33 +1782,35 @@ year_data <- reactive({
       dplyr::filter(network %in% input$network) %>%
       dplyr::filter(marine_park %in% input$marine_park) %>%
       dplyr::filter(ecosystem_component %in% input$ecosystemsubcomponent) %>%
+      ungroup() %>%
+      dplyr::select(-geometry) %>%
+      as.data.frame() %>%
       dplyr::glimpse()
     
-    # Define bins
-    binwidth <- input$binwidth
-    length_df <- length %>%
-      mutate(
-        length_bin = cut(length_mm, breaks = seq(0, max(length_mm, na.rm = TRUE) + binwidth, by = binwidth), right = FALSE)
-      )
-    
-    # Count per bin, then calculate proportions per group
-    hist_summary <- length_df %>%
-      group_by(jurisdiction, zone, length_bin) %>%
-      summarise(n = n(), .groups = "drop") %>%
-      group_by(jurisdiction, zone) %>%
-      mutate(prop = n / sum(n))
-    
-    # ggplot(hist_summary, aes(x = length_bin, y = prop, fill = zone)) +
-    #   geom_col(position = "dodge") +
-    #   facet_grid(jurisdiction ~ .) +
-    #   labs(
-    #     title = "Proportional Histogram of Fish Length",
-    #     x = "Length Bin (mm)",
-    #     y = "Proportion"
+    # binwidth <- input$binwidth
+    # length_df <- length %>%
+    #   mutate(
+    #     length_bin = cut(length_mm, breaks = seq(0, max(length_mm, na.rm = TRUE) + binwidth, by = binwidth), right = FALSE)
     #   )
+    # 
+    # # Count per bin, then calculate proportions per group
+    # hist_summary <- length_df %>%
+    #   group_by(jurisdiction, zone, length_bin) %>%
+    #   summarise(n = n(), .groups = "drop") %>%
+    #   group_by(jurisdiction, zone) %>%
+    #   mutate(prop = n / sum(n))
+    # 
+    # # ggplot(hist_summary, aes(x = length_bin, y = prop, fill = zone)) +
+    # #   geom_col(position = "dodge") +
+    # #   facet_grid(jurisdiction ~ .) +
+    # #   labs(
+    # #     title = "Proportional Histogram of Fish Length",
+    # #     x = "Length Bin (mm)",
+    # #     y = "Proportion"
+    # #   )
     
     ggplot(length, aes(x = length_mm, fill = zone)) +
-      geom_histogram(aes(y = ..density..), binwidth = 10, fill = "steelblue", color = "white", position = "identity") +
+      geom_histogram(aes(y = ..density..), binwidth = input$binwidth, fill = "steelblue", color = "white", position = "identity") +
       facet_grid(jurisdiction ~ zone, scales = "free_y") +
       labs(
         # title = "Normalized Histograms of Fish Length",
