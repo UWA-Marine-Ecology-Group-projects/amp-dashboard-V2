@@ -122,6 +122,9 @@ ggplot2::theme_bw() +
     axis.line.x = ggplot2::element_line(colour = "black", size = 0.5, linetype = "solid"),
     axis.line.y = ggplot2::element_line(colour = "black", size = 0.5, linetype = "solid"),
     strip.background = ggplot2::element_blank(),
+    
+    strip.text = ggplot2::element_text(size = 14, angle = 0),
+    
     plot.title = ggplot2::element_text(color = "black", size = 12, face = "bold.italic")
   )
 

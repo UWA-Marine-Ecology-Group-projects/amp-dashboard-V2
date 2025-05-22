@@ -62,9 +62,38 @@ count_combined <- count_temp %>%
   dplyr::glimpse()
 
 length_combined <- length_temp %>%
+  left_join(synth_datasets) %>%
+  left_join(metadata_combined) %>%
+  dplyr::select(campaignid, sample, family, genus, species, length_mm, count, synthesis_id, ecosystem_component, network, marine_park, longitude_dd, latitude_dd, status) %>%
+  dplyr::left_join(CheckEM::australia_life_history) %>%
+  dplyr::mutate(display_name = paste0(scientific_name, " (", australian_common_name, ")")) %>%
   dplyr::glimpse()
 
-# Caluclate stats ----
+names(length_combined)
+
+# Add state and zones to length data for histograms -----
+coastal_waters <- st_read("data/spatial/shapefiles/Coastal_Waters_areas_(AMB2020).shp")
+marine_parks <- st_read("data/spatial/shapefiles/western-australia_marine-parks-all.shp")
+
+length_sf <- length_combined %>%
+  st_as_sf(coords = c("longitude_dd", "latitude_dd"), crs = 4326)
+
+length_sf <- st_transform(length_sf, st_crs(coastal_waters))
+
+length_with_jurisdiction <- st_join(length_sf, coastal_waters %>% select(catlim)) %>%
+  rename(jurisdiction = catlim) %>%
+  replace_na(list(jurisdiction = "Federal Waters"))
+
+length_with_jurisdiction <- st_transform(length_with_jurisdiction, st_crs(marine_parks))
+
+length_with_jurisdiction_and_zone <- st_join(length_with_jurisdiction, marine_parks) %>%
+  dplyr::select(campaignid, sample, family, genus, species, length_mm, count, display_name, synthesis_id, ecosystem_component, network, marine_park, geometry, status, zone, jurisdiction)
+
+names(length_with_jurisdiction_and_zone)
+
+unique(length_with_jurisdiction$jurisdiction)
+
+# Calculate stats ----
 total_number <- count_combined %>%
   dplyr::filter(count > 0) %>%
   dplyr::group_by(synthesis_id) %>%
@@ -196,3 +225,11 @@ saveRDS(bubble_data, file = here::here("data/app/bubble_data.RDS"))
 saveRDS(synthesis_metadata, file = here::here("data/app/synthesis_metadata.RDS"))
 saveRDS(metric_bubble_data, file = here::here("data/app/metric_bubble_data.RDS"))
 saveRDS(temporal_data, file = here::here("data/app/temporal_data.RDS"))
+saveRDS(length_with_jurisdiction_and_zone, file = here::here("data/app/length_combined.RDS"))
+
+# Save metadata lobsters to use for spatial maps ----
+lobster <- metadata %>%
+  filter(campaignid %in% "2025-04_Yamatji-Shallow-bank_Lobster-pots")
+
+saveRDS(lobster, file = here::here("data/app/lobster.RDS"))
+

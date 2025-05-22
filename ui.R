@@ -31,7 +31,7 @@ ui <- page_navbar(
     # conditionalPanel(
     #   condition = "input.toggle == 'Marine Park'",
     #   
-      uiOutput("dynamic_marine_park")
+    uiOutput("dynamic_marine_park")
     # ),
     
   ),
@@ -52,9 +52,9 @@ ui <- page_navbar(
         #   uiOutput("network_name_1")),
         
         # conditionalPanel(
-          # condition = "input.toggle == 'Marine Park'",
-          
-          uiOutput("marinepark_name_1")
+        # condition = "input.toggle == 'Marine Park'",
+        
+        uiOutput("marinepark_name_1")
         # )
       ),
       
@@ -108,8 +108,8 @@ ui <- page_navbar(
               # ),
               # conditionalPanel(
               #   condition = "input.toggle == 'Marine Park'",
-                uiOutput("ui_marine_park",
-                         width = "100%")
+              uiOutput("ui_marine_park",
+                       width = "100%")
               # )
           )
         ),
@@ -184,28 +184,28 @@ ui <- page_navbar(
                           
                           uiOutput("map_year_slider"),
                           
-                        card(
-                          full_screen = FALSE,
-                          max_height = 665,
-                          
-                          card_header(
-                            "Map"
-                          ),
-                          
-                          layout_column_wrap(width = 1,
-                                             card(full_screen = TRUE,
-                                                  max_height = 620,
-                                                  width = "50%",
-                                                  id = "map-container",
-                                                  withSpinner(leafletOutput("map", height = 550))
-                                             )
+                          card(
+                            full_screen = FALSE,
+                            max_height = 665,
+                            
+                            card_header(
+                              "Map"
+                            ),
+                            
+                            layout_column_wrap(width = 1,
+                                               card(full_screen = TRUE,
+                                                    max_height = 620,
+                                                    width = "50%",
+                                                    id = "map-container",
+                                                    withSpinner(leafletOutput("map", height = 550))
+                                               )
+                            )
+                            
+                            
                           )
-                          
-                          
-                        )
-                      ))
+                        ))
                     )
-                  )),
+                    )),
                   
                   tags$head(
                     tags$style(HTML("
@@ -296,7 +296,7 @@ tags$head(
 div(
   card(
     full_screen = TRUE,
-    height = 800,
+    height = 630,
     
     card_header("Investigate a species"),
     
@@ -304,7 +304,7 @@ div(
     
     layout_column_wrap(width = 1/2,
                        card(full_screen = FALSE,
-                            max_height = "100%",
+                            max_height = 630, #"100%",
                             width = "100%",
                             id = "map-container",
                             
@@ -313,8 +313,6 @@ div(
                             withSpinner(leafletOutput("species_map", height = 485))
                        ),
                        
-                       
-                       
                        div(
                          class = "iframe-container",
                          card(
@@ -322,14 +320,53 @@ div(
                            max_height = "630",
                            max_width = "100%",
                            withSpinner(htmlOutput("iframe", height = "100%")))
-                         # card(
-                         #   full_screen = FALSE,
-                         #   max_height = "100%",
-                         #   width = "50%",
-                         #   plotOutput("species_temporal")
-                         # )
-                       ))
+                       ))#,
+    
+
+    
+    
+    
     # ),
+  ),
+  
+
+  
+  layout_column_wrap(#width = 1/2,
+
+    card(full_screen = FALSE,
+         max_height = "100%",
+         width = "100%",
+         id = "map-container",
+         
+         
+         numericInput("binwidth", 
+                      label = "Bin width for histograms (mm)", 
+                      min = 0, 
+                      max = 1000, 
+                      value = 10,
+                      width = "100%"),
+         
+         card_header("Length frequency histogram"),
+         
+         withSpinner(plotOutput("length_histogram", height = 450))
+    )#,
+    
+    # card(
+    #   min_height = 485,
+    #   max_height = 485,
+    #   max_width = "100%",
+    #   withSpinner(plotOutput("iframe", height = "100%"))
+    # )
+  ),
+  
+  card(full_screen = FALSE,
+       max_height = "100%",
+       width = "100%",
+       id = "map-container",
+       
+       card_header("Normalised length frequency histogram"),
+       
+       withSpinner(plotOutput("length_histogram_density", height = 400))
   )
 ),
 

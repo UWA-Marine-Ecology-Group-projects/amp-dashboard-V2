@@ -18,6 +18,9 @@ synthesis_metadata <- read_rds("data/app/synthesis_metadata.RDS")
 metric_bubble_data <- read_rds("data/app/metric_bubble_data.RDS")
 temporal_data <- read_rds("data/app/temporal_data.RDS")
 
+# Read in length data for histograms ----
+length_combined <- read_rds("data/app/length_combined.RDS")
+
 # Read in dropdown information ----
 dropdown_data <- read_sheet("https://docs.google.com/spreadsheets/d/1Iplohv6mM-CnpE6uYBi4uQnuhCyZMNpCRMSJFFnJxjM/edit?usp=sharing",
                    sheet = "dropdowns")
@@ -133,7 +136,8 @@ all_data <- structure(
     metric_bubble_data = metric_bubble_data,
     synthesis_metadata = synthesis_metadata,
     temporal_data = temporal_data,
-    foa_codes = foa_codes
+    foa_codes = foa_codes,
+    length_combined = length_combined
   ),
   class = "data"
 )
