@@ -978,6 +978,47 @@ server <- function(input, output, session) {
     )
   })
 
+  
+  # Create species dropdown ----
+  output$ui_species_length <- renderUI({
+    
+    data <- all_data$length_combined
+    
+    # if (input$toggle == "Marine Park") {
+    
+    req(input$marine_park)  # Ensure marine_park input is selected
+    
+    data <- data %>%
+      dplyr::filter(network %in% input$network) %>%
+      dplyr::filter(marine_park %in% input$marine_park) %>%
+      dplyr::filter(ecosystem_component %in% input$ecosystemsubcomponent)
+    
+    # } else {
+    #
+    #   data <- data %>%
+    #     dplyr::filter(network %in% input$network) %>%
+    #     dplyr::filter(marine_park %in% paste(input$network, "Network"))
+    #
+    # }
+    
+    choices <- data %>%
+      dplyr::group_by(display_name) %>%
+      dplyr::summarise(total_number = sum(count)) %>%
+      dplyr::arrange(desc(total_number)) %>%
+      dplyr::distinct(display_name) %>%
+      dplyr::pull("display_name")
+    
+    shinyWidgets::pickerInput(
+      inputId = "specieslength",
+      label = "Choose a species:",
+      width = "100%",
+      choices = choices,
+      multiple = FALSE,
+      selected = choices[1],
+      options = list(`actions-box` = TRUE, `live-search` = TRUE, `dropup-auto` = FALSE)
+    )
+  })
+  
 
 # Create filtered error rasters ----
 init_species_map <- reactive({
@@ -1074,6 +1115,19 @@ output$species_year_slider <- renderUI({
   )
 })
 
+output$species_year_slider_length <- renderUI({
+  
+  # Extract unique years from the dataset
+  available_years <- sort(unique(as.numeric(year_data()$year)))
+  
+  sliderTextInput(
+    inputId = "yearlength",
+    label = "Choose a year:",
+    choices = available_years,
+    grid = TRUE,
+    width = "100%"
+  )
+})
 observeEvent(input$species, {
   observeEvent(input$year, {
     # req(input$year)  # Ensure year is selected
@@ -1753,11 +1807,35 @@ year_data <- reactive({
     binwidth <- input$binwidth
     
     length <- all_data$length_combined %>%
-      dplyr::filter(display_name %in% input$species) %>%
+      dplyr::filter(display_name %in% input$specieslength) %>%
       dplyr::filter(network %in% input$network) %>%
       dplyr::filter(marine_park %in% input$marine_park) %>%
       dplyr::filter(ecosystem_component %in% input$ecosystemsubcomponent) %>%
       dplyr::glimpse()
+    
+    metadata <- all_data$synthesis_metadata
+    
+    # if (input$toggle == "Marine Park") {
+    
+    req(input$marine_park)  # Ensure marine_park input is selected
+    
+    metadata <- metadata %>%
+      dplyr::filter(network %in% input$network) %>%
+      dplyr::filter(marine_park %in% input$marine_park) %>%
+      dplyr::filter(ecosystem_component %in% input$ecosystemsubcomponent)
+    
+    message("combined length with year")
+    
+    length <- left_join(length, metadata) %>%
+      dplyr::mutate(year = str_sub(date_time, 1, 4)) %>% glimpse()
+    
+    chosen_year <- as.numeric(input$yearlength) #%>% glimpse()
+    
+    message(unique(data$year))
+    
+    length <- length %>%
+      dplyr::mutate(year = as.numeric(year)) %>%
+      dplyr::filter(year %in% chosen_year) #%>%
     
     ggplot(length, aes(x = length_mm)) +
       geom_histogram(binwidth = binwidth, fill = "steelblue", color = "white") +
@@ -1778,7 +1856,7 @@ year_data <- reactive({
     message("length hist data")
     
     length <- all_data$length_combined %>%
-      dplyr::filter(display_name %in% input$species) %>%
+      dplyr::filter(display_name %in% input$specieslength) %>%
       dplyr::filter(network %in% input$network) %>%
       dplyr::filter(marine_park %in% input$marine_park) %>%
       dplyr::filter(ecosystem_component %in% input$ecosystemsubcomponent) %>%
@@ -1786,6 +1864,28 @@ year_data <- reactive({
       dplyr::select(-geometry) %>%
       as.data.frame() %>%
       dplyr::glimpse()
+    
+    
+    metadata <- all_data$synthesis_metadata
+    
+    metadata <- metadata %>%
+      dplyr::filter(network %in% input$network) %>%
+      dplyr::filter(marine_park %in% input$marine_park) %>%
+      dplyr::filter(ecosystem_component %in% input$ecosystemsubcomponent)
+    
+    message("combined length with year")
+    
+    length <- left_join(length, metadata) %>%
+      dplyr::mutate(year = str_sub(date_time, 1, 4)) %>% glimpse()
+    
+    chosen_year <- as.numeric(input$yearlength) #%>% glimpse()
+    
+    message(unique(data$yearlength))
+    
+    length <- length %>%
+      dplyr::mutate(year = as.numeric(year)) %>%
+      dplyr::filter(year %in% chosen_year) #%>%
+    
     
     # binwidth <- input$binwidth
     # length_df <- length %>%

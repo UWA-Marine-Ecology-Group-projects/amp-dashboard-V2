@@ -294,80 +294,92 @@ tags$head(
 
 # SPECIES DISTRIBUTION MAP ----
 div(
+  page_fillable(
   card(
     full_screen = TRUE,
-    height = 630,
+    max_height = 700,
     
-    card_header("Investigate a species"),
+    card_header("Investigate a species abundance data"),
     
-    htmlOutput("ui_species"),
-    
-    layout_column_wrap(width = 1/2,
+    fluidRow( column(width = 6,
+                     htmlOutput("ui_species")),
+              
+              column(width = 6,
+                     uiOutput("species_year_slider"))),#),#)
+
+      layout_columns(width = 1/2,
                        card(full_screen = FALSE,
-                            max_height = 630, #"100%",
+                            max_height = 500, #500, #"100%",
                             width = "100%",
                             id = "map-container",
                             
-                            uiOutput("species_year_slider"),
-                            
-                            withSpinner(leafletOutput("species_map", height = 485))
+                            withSpinner(leafletOutput("species_map", height = 460
+                                                      ))
                        ),
                        
                        div(
                          class = "iframe-container",
                          card(
-                           min_height = "615",
-                           max_height = "630",
+                           # min_height = "450",
+                           # max_height = 430,
+                           max_height = 500, #500, #"100%",
                            max_width = "100%",
-                           withSpinner(htmlOutput("iframe", height = "100%")))
-                       ))#,
-    
-
-    
-    
-    
+                           withSpinner(htmlOutput("iframe"#, height = "100%"
+                                                  )))
+                       )))#,
     # ),
   ),
   
-
+  
   
   layout_column_wrap(#width = 1/2,
-
-    card(full_screen = FALSE,
-         max_height = "100%",
-         width = "100%",
-         id = "map-container",
-         
-         
-         numericInput("binwidth", 
-                      label = "Bin width for histograms (mm)", 
-                      min = 0, 
-                      max = 1000, 
-                      value = 10,
-                      width = "100%"),
-         
-         card_header("Length frequency histogram"),
-         
-         withSpinner(plotOutput("length_histogram", height = 450))
-    )#,
     
-    # card(
-    #   min_height = 485,
-    #   max_height = 485,
-    #   max_width = "100%",
-    #   withSpinner(plotOutput("iframe", height = "100%"))
-    # )
+    card(full_screen = TRUE,
+         # max_height = 700,
+         
+         card_header("Investigate a species length data"),
+         
+         fluidRow( column(width = 4,
+                          htmlOutput("ui_species_length")),
+                   
+                   column(width = 4,
+                          uiOutput("species_year_slider_length")),
+                   
+                   column(width = 4,
+                          numericInput("binwidth", 
+                                       label = "Bin width for histograms (mm)", 
+                                       min = 0, 
+                                       max = 1000, 
+                                       value = 10,
+                                       width = "100%")),
+                   
+                   ),
+         
+         card(full_screen = FALSE,
+              max_height = "100%",
+              width = "100%",
+              id = "map-container",
+              
+              card_header("Length frequency histogram"),
+              
+              withSpinner(plotOutput("length_histogram"#, height = 450
+                                     ))
+              ),
+         
+         
+         card(full_screen = FALSE,
+              max_height = "100%",
+              width = "100%",
+              id = "map-container",
+              
+              card_header("Normalised length frequency histogram"),
+              
+              withSpinner(plotOutput("length_histogram_density"#, height = 400
+                                     ))
+         )
   ),
   
-  card(full_screen = FALSE,
-       max_height = "100%",
-       width = "100%",
-       id = "map-container",
-       
-       card_header("Normalised length frequency histogram"),
-       
-       withSpinner(plotOutput("length_histogram_density", height = 400))
-  )
+)
 ),
 
 tags$head(
