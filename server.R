@@ -1,8 +1,6 @@
 server <- function(input, output, session) {
-  # # observe({
-  # #   active_panel <- input$navbar_id %>% glimpse
-  # # })
-  
+
+  ## Show Shinyalert for draft data ----
   shinyalert(
     title = "Draft Product Disclaimer",
     text = "By proceeding, you agree that this draft product is not to be used for decision-making, communication, or publication purposes.",
@@ -12,6 +10,30 @@ server <- function(input, output, session) {
     closeOnEsc = FALSE,
     closeOnClickOutside = FALSE
   )
+  
+  # Create Marine Park Name Title ----
+  debounced_park <- debounce(reactive(input$marine_park), 300)
+  
+  output$marinepark_name <- renderUI({
+    req(debounced_park())
+    HTML(paste0("<b>", debounced_park(), "</b>"))
+  })
+  
+  # # Create Network Name Title ----
+  ## Turned off because we are not showing network level atm
+  # debounced_network <- debounce(reactive(input$network), 300)
+  # 
+  # output$network_name <- renderUI({
+  #   req(debounced_network())
+  #   HTML(paste0("<b>", debounced_network(), "</b>"))
+  # })
+  
+  
+  
+  
+  
+  
+  
   
   
   # Dynamic dropdown for Ecosystem Component ----
@@ -56,25 +78,7 @@ server <- function(input, output, session) {
     }
   })
   
-  # Marine Park Name Function ----
-  render_marinepark_name <- function() {
-    req(#input$toggle, 
-        input$network, input$marine_park)
-    h3(HTML(paste0("<b>", input$marine_park)))
-  }
-  
-  # Marine Park names ----
-  output$marinepark_name_1 <- renderUI(render_marinepark_name())
-  
-  # Network Name Function ----
-  render_network_name <- function() {
-    req(#input$toggle, 
-        input$network, input$marine_park)
-    h3(HTML(paste0("<b>", input$network, " Network")))
-  }
-  
-  # Network name ----
-  output$network_name_1 <- renderUI(render_network_name())
+
   
   # Ecosystem Component name ----
   output$ecosystem_subcomponent_name <- renderUI({

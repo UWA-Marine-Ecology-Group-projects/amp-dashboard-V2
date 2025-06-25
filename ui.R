@@ -49,13 +49,13 @@ ui <- page_navbar(
         # Conditional panels for name of the view ----
         # conditionalPanel(
         #   condition = "input.toggle == 'Network'",
-        #   uiOutput("network_name_1")),
+        # h3(htmlOutput("network_name"))
         
         # conditionalPanel(
         # condition = "input.toggle == 'Marine Park'",
         
-        uiOutput("marinepark_name_1")
-        # )
+        h3(htmlOutput("marinepark_name"))
+
       ),
       
       layout_column_wrap(
