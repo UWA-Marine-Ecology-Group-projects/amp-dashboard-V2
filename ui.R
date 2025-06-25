@@ -31,7 +31,10 @@ ui <- page_navbar(
     # conditionalPanel(
     #   condition = "input.toggle == 'Marine Park'",
     #   
-    uiOutput("dynamic_marine_park")
+    # uiOutput("dynamic_marine_park")
+    radioButtons("marine_park", 
+                 "Marine Park/Sentinel Area:", 
+                 choices = c(initial_parks))
     # ),
     
   ),

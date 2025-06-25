@@ -52,6 +52,11 @@ dummy_points <- data.frame(
 # Load data ----
 load("data/app/all_data.Rdata")
 
+initial_parks <- all_data$metadata %>% 
+  filter(network == "South-west") %>%
+  pull(marine_park) %>%
+  unique()
+
 # FISHNCLIPS
 dat <- readRDS("data/fishnclips/dat.RDS") %>%
   dplyr::rename(latitude = latitude_dd, longitude = longitude_dd)
