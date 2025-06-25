@@ -181,23 +181,40 @@ ui <- page_navbar(
                       
                       div(
                         page_fillable(
-                          
-                          uiOutput("map_year_slider"),
-                          
                           card(
-                            full_screen = FALSE,
+                            full_screen = TRUE,
                             max_height = 665,
                             
                             card_header(
                               "Map"
                             ),
                             
+                            uiOutput("map_year_slider"),
+                            
+  #                           tags$head(
+  #                             tags$style(HTML("
+  #   #map-container {
+  #     height: 100vh !important;
+  #   }
+  #   #map {
+  #     height: 100% !important;
+  #     width: 100% !important;
+  #   }
+  #   .bslib-card-fullscreen {
+  #     height: 100vh !important;
+  #   }
+  # "))),
+                            
                             layout_column_wrap(width = 1,
-                                               card(full_screen = TRUE,
-                                                    max_height = 620,
+                                               card(full_screen = FALSE,
+                                                    min_height = 500,
+                                                    # max_height = 600,
                                                     width = "50%",
                                                     id = "map-container",
-                                                    withSpinner(leafletOutput("map", height = 550))
+                                                    withSpinner(leafletOutput("map", #height = "100%"
+                                                                              height = "50vh"
+                                                                              #, height = 550
+                                                                              ))
                                                )
                             )
                             

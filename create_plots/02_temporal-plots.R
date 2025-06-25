@@ -11,6 +11,8 @@ data <- read_sheet("https://docs.google.com/spreadsheets/d/1Iplohv6mM-CnpE6uYBi4
                    sheet = "temporal_data") %>%
   mutate(year = as.numeric(format(date, "%Y")))
 
+2
+
 # # do a plot with the first one just as a test to get the code right -----
 #
 # test_data <- data %>%

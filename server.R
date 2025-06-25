@@ -16,8 +16,18 @@ server <- function(input, output, session) {
   
   # Dynamic dropdown for Ecosystem Component ----
   output$dynamic_ecosystem_subcomponent <- renderUI({
-    req(input$metric)
-    components <- unique(all_data$dropdown_data$ecosystem_component[all_data$dropdown_data$metric == input$metric])
+    req(input$metric, input$marine_park)
+    
+    components <- all_data$synthesis_metadata %>% distinct(network, marine_park, ecosystem_component) %>%
+      left_join(all_data$dropdown_data) %>%
+      dplyr::filter(metric %in% input$metric) %>%
+      dplyr::filter(marine_park %in% input$marine_park) %>%
+      glimpse() %>%
+      dplyr::pull(ecosystem_component)
+    
+    # components <- unique(all_data$dropdown_data$ecosystem_component[all_data$dropdown_data$metric == input$metric])
+    
+    # components <- unique(existing_components$ecosystem_component[all_data$dropdown_data$metric == "Natural Values"])
     
     shinyWidgets::pickerInput(
       inputId = "ecosystemsubcomponent",
@@ -168,12 +178,12 @@ server <- function(input, output, session) {
     # if (input$toggle == "Marine Park") {
       req(input$marine_park)  # Ensure marine_park input is selected
       
-      # message("view conditional data marine park")
+      message("view conditional data marine park")
       
       plot_list %>%
         dplyr::filter(network %in% input$network) %>%
         dplyr::filter(marine_park %in% input$marine_park) %>%
-        dplyr::filter(metric %in% input$ecosystemsubcomponent) #%>% glimpse
+        dplyr::filter(metric %in% input$ecosystemsubcomponent) %>% glimpse
     # } else {
     #   
     #   # message("view conditional data network")
@@ -189,9 +199,9 @@ server <- function(input, output, session) {
   output$condition_plot_ui <- renderUI({
     req(condition_filtered_data())
     
-    message("view chosen plot")
+    message("view chosen codntion plot")
     
-    chosen_plot <- condition_filtered_data() #%>% glimpse
+    chosen_plot <- condition_filtered_data() %>% glimpse
     # validate(need(nrow(chosen_plot) > 0, "No condition data available for the selected filters."))
     plotOutput("condition_plot", height = condition_plot_height())
   })
@@ -1744,7 +1754,7 @@ year_data <- reactive({
       hideGroup("Australian Marine Parks")%>%
       hideGroup("FishNClips")
   })
-
+  
   observeEvent(input$map_year, {
 
     data <- all_data$synthesis_metadata %>%
@@ -1784,8 +1794,8 @@ year_data <- reactive({
       
     } else if(input$ecosystemsubcomponent %in% "Mobile macro invertebrates"){
       
-      dat <- "https://www.fish.wa.gov.au/Documents/recreational_fishing/fact_sheets/fact_sheet_western_rock_lobster.pdf"
-      
+      # dat <- "https://www.fish.wa.gov.au/Documents/recreational_fishing/fact_sheets/fact_sheet_western_rock_lobster.pdf"
+      dat <- "https://panuliruscygnus.org/"
     }
 
     frame <- tags$iframe(src = paste0(dat),
@@ -1921,312 +1931,312 @@ year_data <- reactive({
     
   })
 
-  # # # Create map for Dashboard ----
-  # output$australia_map <- renderLeaflet({
-  #   # req(input$toggle, input$network, input$options)
-  #   
-  #   points_og <- metadata_filtered_data() %>%
-  #     dplyr::mutate(year = str_sub(date_time, 1, 4))
-  # 
-  #   points <- metadata_filtered_data()
-  # 
-  #   if (nrow(points) == 0) {
-  #     points <- tibble(
-  #       latitude_dd = c(-25.0, -25.1),
-  #       longitude_dd = c(133.0, 133.1)
-  #     )
-  #   }
-  # 
-  #   metric_title <- unique(raster_predicted_data()$metric)
-  # 
-  #   icon <- iconList(blue = makeIcon("images/marker_blue.png", iconWidth = 40, iconHeight =40))
-  # 
-  #   map.dat <- dat
-  # 
-  #   boss.habitat.highlights.popups <- filter(map.dat, source %in% c("boss.habitat.highlights"))
-  #   bruv.habitat.highlights.popups <- filter(map.dat, source %in% c("bruv.habitat.highlights"))
-  #   fish.highlights.popups <- filter(map.dat, source %in% c("fish.highlights"))
-  #   threed.model.popups <- filter(map.dat, source %in% c("3d.model"))
-  #   image.popups <- filter(map.dat, source %in% c('image'))
-  # 
-  #   # Having this in the global.R script breaks now - make icons on server side
-  #   icon.bruv.habitat <- iconList(blue = makeIcon("images/marker_green.png", iconWidth = 40, iconHeight =40))
-  #   icon.boss.habitat <- iconList(blue = makeIcon("images/marker_pink.png", iconWidth = 40, iconHeight =40))
-  #   icon.fish <- iconList(blue = makeIcon("images/marker_yellow.png", iconWidth = 40, iconHeight =40))
-  #   icon.models <- iconList(blue = makeIcon("images/marker_purple.png", iconWidth = 40, iconHeight =40))
-  # 
-  #   # Initial Leaflet map ----
-  #   map <- leaflet(points) %>%
-  #     addTiles() %>%
-  #     addMarkers(data = points, ~longitude_dd, ~latitude_dd,
-  #                icon = icon,
-  #                clusterOptions = markerClusterOptions(iconCreateFunction =
-  #                                                        JS("
-  #                                       function(cluster) {
-  #                                          return new L.DivIcon({
-  #                                            html: '<div style=\"background-color:rgba(0, 123, 255, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
-  #                                            className: 'marker-cluster'
-  #                                          });
-  #                                        }")),
-  #                group = "Sampling locations"
-  #     )%>%
-  # 
-  #     fitBounds(
-  #       lng1 = min(points_og$longitude_dd), lat1 = min(points_og$latitude_dd),
-  #       lng2 = max(points_og$longitude_dd), lat2 = max(points_og$latitude_dd)
-  #     ) %>%
-  # 
-  #     # Ngari Capes Marine Parks
-  #     addPolygons(data = ngari.mp, weight = 1, color = "black",
-  #                 fillOpacity = 0.8, fillColor = "#7bbc63",
-  #                 group = "State Marine Parks", label=ngari.mp$Name) %>%
-  # 
-  #     # State Marine Parks
-  #     addPolygons(data = state.mp, weight = 1, color = "black",
-  #                 fillOpacity = 0.8, fillColor = ~state.pal(zone),
-  #                 group = "State Marine Parks", label=state.mp$COMMENTS) %>%
-  # 
-  #     # Add a legend
-  #     addLegend(pal = state.pal, values = state.mp$zone, opacity = 1,
-  #               title="State Zones",
-  #               position = "bottomright", group = "State Marine Parks") %>%
-  # 
-  #     # Commonwealth Marine Parks
-  #     addPolygons(data = commonwealth.mp, weight = 1, color = "black",
-  #                 fillOpacity = 0.8, fillColor = ~commonwealth.pal(zone),
-  #                 group = "Australian Marine Parks", label=commonwealth.mp$ZoneName) %>%
-  # 
-  #     # Add a legend
-  #     addLegend(pal = commonwealth.pal, values = commonwealth.mp$zone, opacity = 1,
-  #               title="Australian Marine Park Zones",
-  #               position = "bottomright", group = "Australian Marine Parks") %>%
-  # 
-  #     # stereo-BRUV habitat videos
-  #     addMarkers(data=bruv.habitat.highlights.popups,
-  #                icon = icon.bruv.habitat,
-  #                popup = bruv.habitat.highlights.popups$popup,
-  #                #label = bruv.habitat.highlights.popups$sample,
-  #                clusterOptions = markerClusterOptions(iconCreateFunction =
-  #                                                        JS("
-  #                                       function(cluster) {
-  #                                          return new L.DivIcon({
-  #                                            html: '<div style=\"background-color:rgba(124, 248, 193, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
-  #                                            className: 'marker-cluster'
-  #                                          });
-  #                                        }")),
-  #                group = "FishNClips",
-  #                popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
-  # 
-  #     # BOSS habitat videos
-  #     addMarkers(data=boss.habitat.highlights.popups,
-  #                icon = icon.boss.habitat,
-  #                popup = boss.habitat.highlights.popups$popup,
-  #                #label = boss.habitat.highlights.popups$sample,
-  #                clusterOptions = markerClusterOptions(iconCreateFunction =
-  #                                                        JS("
-  #                                       function(cluster) {
-  #                                          return new L.DivIcon({
-  #                                            html: '<div style=\"background-color:rgba(248, 124, 179, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
-  #                                            className: 'marker-cluster'
-  #                                          });
-  #                                        }")),
-  #                group = "FishNClips",
-  #                popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
-  # 
-  #     # stereo-BRUV fish videos
-  #     addMarkers(data=fish.highlights.popups,
-  #                icon = icon.fish,
-  #                popup = fish.highlights.popups$popup,
-  #                clusterOptions = markerClusterOptions(iconCreateFunction =
-  #                                                        JS("
-  #                                       function(cluster) {
-  #                                          return new L.DivIcon({
-  #                                            html: '<div style=\"background-color:rgba(241, 248, 124,0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
-  #                                            className: 'marker-cluster'
-  #                                          });
-  #                                        }")),
-  #                group = "FishNClips",
-  #                popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
-  # 
-  #     # 3D models
-  #     addMarkers(data=threed.model.popups,
-  #                icon = icon.models,
-  #                popup = threed.model.popups$popup,
-  #                clusterOptions = markerClusterOptions(iconCreateFunction =
-  #                                                        JS("
-  #                                       function(cluster) {
-  #                                          return new L.DivIcon({
-  #                                            html: '<div style=\"background-color:rgba(131, 124, 248,0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
-  #                                            className: 'marker-cluster'
-  #                                          });
-  #                                        }")),
-  #                group = "FishNClips",
-  #                popupOptions=c(closeButton = TRUE, minWidth = 0,maxWidth = 700)
-  #     )%>%
-  # 
-  #     addControl(html = html_legend, position = "bottomleft", className = "fishnclips-legend-aus") %>%
-  # 
-  #     addLayersControl(
-  #       # baseGroups = c("OSM (default)", "World Imagery (satellite)"),
-  #       overlayGroups = c("Australian Marine Parks",
-  #                         "State Marine Parks",
-  #                         "Sampling locations",
-  #                         "FishNClips"),
-  #       options = layersControlOptions(collapsed = FALSE),
-  #       position = "bottomright"
-  #     )  %>% # Ensure "Predicted" is hidden initially
-  #     hideGroup("State Marine Parks") %>%
-  #     hideGroup("Australian Marine Parks")%>%
-  #     hideGroup("FishNClips")
-  # 
-  # 
-  #   # Add tiles only if raster_predicted_data() has valid data ----
-  #   if (!is.null(raster_predicted_data()) && nrow(raster_predicted_data()) > 0) {
-  # 
-  #     # message(paste0("raster available:", unique(raster_predicted_data()$tile_service_url)))
-  #     # Blue = low, yellow = high
-  # 
-  #     map <- map %>%
-  #       addTiles(
-  #         urlTemplate = paste(unique(raster_predicted_data()$tile_service_url)),
-  #         attribution = "© GlobalArchive",
-  #         group = "Predicted"
-  #       ) %>%
-  #       addLegend(
-  #         position = "bottomright",
-  #         pal = colorNumeric(palette = viridisLite::turbo(256, direction = -1),  #(reverse here)
-  #                            domain = c(raster_predicted_data()$min, raster_predicted_data()$max)
-  #         ),
-  #         values = seq(
-  #           from = raster_predicted_data()$min,
-  #           to = raster_predicted_data()$max,
-  #           length.out = 5
-  #         ),  # Define 5 fixed values for the legend
-  #         title = "Predicted",
-  #         labFormat = labelFormat(transform = function(x) sort(x, decreasing = TRUE)),
-  #         opacity = 1,
-  #         group = "Predicted"
-  #       )
-  #   }
-  # 
-  #   # Add tiles only if raster_error_data() has valid data ----
-  #   if (!is.null(raster_error_data()) && nrow(raster_error_data()) > 0) {
-  #     map <- map %>%
-  #       addTiles(
-  #         urlTemplate = paste(unique(raster_error_data()$tile_service_url)),
-  #         attribution = "© GlobalArchive",
-  #         group = "Error"
-  #       ) %>%
-  #       hideGroup("Error")  # Ensure "Error" is hidden initially
-  #   }
-  # 
-  #   # Add custom radio buttons with title as a control ----
-  #   map %>%
-  #     htmlwidgets::onRender(
-  #       glue::glue(
-  #         "function(el, x) {{
-  #        var map = this;
-  #        var customControl = L.control({{position: 'topright'}});  // Position of the control
-  # 
-  #        customControl.onAdd = function(map) {{
-  #          var div = L.DomUtil.create('div', 'leaflet-bar');
-  #          div.innerHTML = `
-  #            <div style='text-align: center; margin-bottom: 8px; font-weight: bold;'>
-  #              {metric_title}
-  #            </div>
-  #            <form>
-  #              <label><input type='radio' name='layer' value='Predicted' checked> Predicted</label><br>
-  #              <label><input type='radio' name='layer' value='Error'> Error</label>
-  #            </form>`;
-  #          div.style.backgroundColor = 'white';
-  #          div.style.padding = '10px';
-  #          div.style.border = '2px solid gray';
-  #          return div;
-  #        }};
-  # 
-  #        customControl.addTo(map);
-  # 
-  #        // Listen for changes in the radio buttons
-  #        var radioButtons = document.querySelectorAll('input[name=\"layer\"]');
-  #        radioButtons.forEach(function(rb) {{
-  #          rb.addEventListener('change', function(e) {{
-  #            Shiny.setInputValue('layer_toggle', e.target.value, {{priority: 'event'}});  // Send selected value to Shiny
-  #          }});
-  #        }});
-  #      }}"
-  #       )
-  #     )
-  # })
-  # 
-  # observe({
-  #   input$australia_map_groups
-  #   shinyjs::runjs(sprintf("
-  #   var isVisible = %s.includes('FishNClips');
-  #   var legend = document.querySelector('.fishnclips-legend-aus');
-  #   if (legend) {
-  #     legend.style.display = isVisible ? 'block' : 'none';
-  #   }
-  # ", jsonlite::toJSON(input$australia_map_groups)))
-  # })
-  # 
-  # observe({
-  #   input$map_groups
-  #   shinyjs::runjs(sprintf("
-  #   var isVisible = %s.includes('FishNClips');
-  #   var legend = document.querySelector('.fishnclips-legend-map');
-  #   if (legend) {
-  #     legend.style.display = isVisible ? 'block' : 'none';
-  #   }
-  # ", jsonlite::toJSON(input$map_groups)))
-  # })
-  # 
-  # 
-  # # Observe the radio button input and update the map ----
-  # observe({
-  #   req(input$layer_toggle)  # Ensure toggle input is available
-  # 
-  #   map_proxy <- leafletProxy("australia_map")
-  # 
-  #   # Show/hide layers based on the selected radio button
-  #   if (input$layer_toggle == "Predicted") {
-  #     map_proxy %>%
-  #       showGroup("Predicted") %>%
-  #       hideGroup("Error")%>%
-  #       clearControls() %>%  # Clear all existing controls
-  #       addLegend(
-  #         position = "bottomright",
-  #         pal = colorNumeric(palette = viridisLite::turbo(256, direction = -1),
-  #                            domain = c(raster_predicted_data()$min, raster_predicted_data()$max)),
-  #         values = seq(
-  #           from = raster_predicted_data()$min,
-  #           to = raster_predicted_data()$max,
-  #           length.out = 5
-  #         ),  # Define 5 fixed values for the legend
-  #         title = "Predicted",
-  #         labFormat = labelFormat(transform = function(x) sort(x, decreasing = TRUE)),
-  #         opacity = 1
-  #       )
-  #   } else if (input$layer_toggle == "Error") {
-  #     map_proxy %>%
-  #       showGroup("Error") %>%
-  #       hideGroup("Predicted")%>%
-  #       clearControls() %>%  # Clear all existing controls
-  #       addLegend(
-  #         position = "bottomright",
-  #         pal = colorNumeric(palette = viridisLite::plasma(256, direction = -1),
-  #                            domain = c(raster_error_data()$min, raster_error_data()$max)),
-  #         # values = c(, ),
-  #         values = seq(
-  #           from = raster_error_data()$min,
-  #           to = raster_error_data()$max,
-  #           length.out = 5
-  #         ),  # Define 5 fixed values for the legend
-  #         title = "Error",
-  #         labFormat = labelFormat(transform = function(x) sort(x, decreasing = TRUE)),
-  #         opacity = 1
-  #       )
-  #   }
-  # })
+  # # Create map for Dashboard ----
+  output$australia_map <- renderLeaflet({
+    # req(input$toggle, input$network, input$options)
+
+    points_og <- metadata_filtered_data() %>%
+      dplyr::mutate(year = str_sub(date_time, 1, 4))
+
+    points <- metadata_filtered_data()
+
+    if (nrow(points) == 0) {
+      points <- tibble(
+        latitude_dd = c(-25.0, -25.1),
+        longitude_dd = c(133.0, 133.1)
+      )
+    }
+
+    metric_title <- unique(raster_predicted_data()$metric)
+
+    icon <- iconList(blue = makeIcon("images/marker_blue.png", iconWidth = 40, iconHeight =40))
+
+    map.dat <- dat
+
+    boss.habitat.highlights.popups <- filter(map.dat, source %in% c("boss.habitat.highlights"))
+    bruv.habitat.highlights.popups <- filter(map.dat, source %in% c("bruv.habitat.highlights"))
+    fish.highlights.popups <- filter(map.dat, source %in% c("fish.highlights"))
+    threed.model.popups <- filter(map.dat, source %in% c("3d.model"))
+    image.popups <- filter(map.dat, source %in% c('image'))
+
+    # Having this in the global.R script breaks now - make icons on server side
+    icon.bruv.habitat <- iconList(blue = makeIcon("images/marker_green.png", iconWidth = 40, iconHeight =40))
+    icon.boss.habitat <- iconList(blue = makeIcon("images/marker_pink.png", iconWidth = 40, iconHeight =40))
+    icon.fish <- iconList(blue = makeIcon("images/marker_yellow.png", iconWidth = 40, iconHeight =40))
+    icon.models <- iconList(blue = makeIcon("images/marker_purple.png", iconWidth = 40, iconHeight =40))
+
+    # Initial Leaflet map ----
+    map <- leaflet(points) %>%
+      addTiles() %>%
+      addMarkers(data = points, ~longitude_dd, ~latitude_dd,
+                 icon = icon,
+                 clusterOptions = markerClusterOptions(iconCreateFunction =
+                                                         JS("
+                                        function(cluster) {
+                                           return new L.DivIcon({
+                                             html: '<div style=\"background-color:rgba(0, 123, 255, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
+                                             className: 'marker-cluster'
+                                           });
+                                         }")),
+                 group = "Sampling locations"
+      )%>%
+
+      fitBounds(
+        lng1 = min(points_og$longitude_dd), lat1 = min(points_og$latitude_dd),
+        lng2 = max(points_og$longitude_dd), lat2 = max(points_og$latitude_dd)
+      ) %>%
+
+      # Ngari Capes Marine Parks
+      addPolygons(data = ngari.mp, weight = 1, color = "black",
+                  fillOpacity = 0.8, fillColor = "#7bbc63",
+                  group = "State Marine Parks", label=ngari.mp$Name) %>%
+
+      # State Marine Parks
+      addPolygons(data = state.mp, weight = 1, color = "black",
+                  fillOpacity = 0.8, fillColor = ~state.pal(zone),
+                  group = "State Marine Parks", label=state.mp$COMMENTS) %>%
+
+      # Add a legend
+      addLegend(pal = state.pal, values = state.mp$zone, opacity = 1,
+                title="State Zones",
+                position = "bottomright", group = "State Marine Parks") %>%
+
+      # Commonwealth Marine Parks
+      addPolygons(data = commonwealth.mp, weight = 1, color = "black",
+                  fillOpacity = 0.8, fillColor = ~commonwealth.pal(zone),
+                  group = "Australian Marine Parks", label=commonwealth.mp$ZoneName) %>%
+
+      # Add a legend
+      addLegend(pal = commonwealth.pal, values = commonwealth.mp$zone, opacity = 1,
+                title="Australian Marine Park Zones",
+                position = "bottomright", group = "Australian Marine Parks") %>%
+
+      # stereo-BRUV habitat videos
+      addMarkers(data=bruv.habitat.highlights.popups,
+                 icon = icon.bruv.habitat,
+                 popup = bruv.habitat.highlights.popups$popup,
+                 #label = bruv.habitat.highlights.popups$sample,
+                 clusterOptions = markerClusterOptions(iconCreateFunction =
+                                                         JS("
+                                        function(cluster) {
+                                           return new L.DivIcon({
+                                             html: '<div style=\"background-color:rgba(124, 248, 193, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
+                                             className: 'marker-cluster'
+                                           });
+                                         }")),
+                 group = "FishNClips",
+                 popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
+
+      # BOSS habitat videos
+      addMarkers(data=boss.habitat.highlights.popups,
+                 icon = icon.boss.habitat,
+                 popup = boss.habitat.highlights.popups$popup,
+                 #label = boss.habitat.highlights.popups$sample,
+                 clusterOptions = markerClusterOptions(iconCreateFunction =
+                                                         JS("
+                                        function(cluster) {
+                                           return new L.DivIcon({
+                                             html: '<div style=\"background-color:rgba(248, 124, 179, 0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
+                                             className: 'marker-cluster'
+                                           });
+                                         }")),
+                 group = "FishNClips",
+                 popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
+
+      # stereo-BRUV fish videos
+      addMarkers(data=fish.highlights.popups,
+                 icon = icon.fish,
+                 popup = fish.highlights.popups$popup,
+                 clusterOptions = markerClusterOptions(iconCreateFunction =
+                                                         JS("
+                                        function(cluster) {
+                                           return new L.DivIcon({
+                                             html: '<div style=\"background-color:rgba(241, 248, 124,0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
+                                             className: 'marker-cluster'
+                                           });
+                                         }")),
+                 group = "FishNClips",
+                 popupOptions=c(closeButton = TRUE,minWidth = 0,maxWidth = 700))%>%
+
+      # 3D models
+      addMarkers(data=threed.model.popups,
+                 icon = icon.models,
+                 popup = threed.model.popups$popup,
+                 clusterOptions = markerClusterOptions(iconCreateFunction =
+                                                         JS("
+                                        function(cluster) {
+                                           return new L.DivIcon({
+                                             html: '<div style=\"background-color:rgba(131, 124, 248,0.9)\"><span>' + cluster.getChildCount() + '</div><span>',
+                                             className: 'marker-cluster'
+                                           });
+                                         }")),
+                 group = "FishNClips",
+                 popupOptions=c(closeButton = TRUE, minWidth = 0,maxWidth = 700)
+      )%>%
+
+      addControl(html = html_legend, position = "bottomleft", className = "fishnclips-legend-aus") %>%
+
+      addLayersControl(
+        # baseGroups = c("OSM (default)", "World Imagery (satellite)"),
+        overlayGroups = c("Australian Marine Parks",
+                          "State Marine Parks",
+                          "Sampling locations",
+                          "FishNClips"),
+        options = layersControlOptions(collapsed = FALSE),
+        position = "bottomright"
+      )  %>% # Ensure "Predicted" is hidden initially
+      hideGroup("State Marine Parks") %>%
+      hideGroup("Australian Marine Parks")%>%
+      hideGroup("FishNClips")
+
+
+    # Add tiles only if raster_predicted_data() has valid data ----
+    if (!is.null(raster_predicted_data()) && nrow(raster_predicted_data()) > 0) {
+
+      # message(paste0("raster available:", unique(raster_predicted_data()$tile_service_url)))
+      # Blue = low, yellow = high
+
+      map <- map %>%
+        addTiles(
+          urlTemplate = paste(unique(raster_predicted_data()$tile_service_url)),
+          attribution = "© GlobalArchive",
+          group = "Predicted"
+        ) %>%
+        addLegend(
+          position = "bottomright",
+          pal = colorNumeric(palette = viridisLite::turbo(256, direction = -1),  #(reverse here)
+                             domain = c(raster_predicted_data()$min, raster_predicted_data()$max)
+          ),
+          values = seq(
+            from = raster_predicted_data()$min,
+            to = raster_predicted_data()$max,
+            length.out = 5
+          ),  # Define 5 fixed values for the legend
+          title = "Predicted",
+          labFormat = labelFormat(transform = function(x) sort(x, decreasing = TRUE)),
+          opacity = 1,
+          group = "Predicted"
+        )
+    }
+
+    # Add tiles only if raster_error_data() has valid data ----
+    if (!is.null(raster_error_data()) && nrow(raster_error_data()) > 0) {
+      map <- map %>%
+        addTiles(
+          urlTemplate = paste(unique(raster_error_data()$tile_service_url)),
+          attribution = "© GlobalArchive",
+          group = "Error"
+        ) %>%
+        hideGroup("Error")  # Ensure "Error" is hidden initially
+    }
+
+    # Add custom radio buttons with title as a control ----
+    map %>%
+      htmlwidgets::onRender(
+        glue::glue(
+          "function(el, x) {{
+         var map = this;
+         var customControl = L.control({{position: 'topright'}});  // Position of the control
+
+         customControl.onAdd = function(map) {{
+           var div = L.DomUtil.create('div', 'leaflet-bar');
+           div.innerHTML = `
+             <div style='text-align: center; margin-bottom: 8px; font-weight: bold;'>
+               {metric_title}
+             </div>
+             <form>
+               <label><input type='radio' name='layer' value='Predicted' checked> Predicted</label><br>
+               <label><input type='radio' name='layer' value='Error'> Error</label>
+             </form>`;
+           div.style.backgroundColor = 'white';
+           div.style.padding = '10px';
+           div.style.border = '2px solid gray';
+           return div;
+         }};
+
+         customControl.addTo(map);
+
+         // Listen for changes in the radio buttons
+         var radioButtons = document.querySelectorAll('input[name=\"layer\"]');
+         radioButtons.forEach(function(rb) {{
+           rb.addEventListener('change', function(e) {{
+             Shiny.setInputValue('layer_toggle', e.target.value, {{priority: 'event'}});  // Send selected value to Shiny
+           }});
+         }});
+       }}"
+        )
+      )
+  })
+
+  observe({
+    input$australia_map_groups
+    shinyjs::runjs(sprintf("
+    var isVisible = %s.includes('FishNClips');
+    var legend = document.querySelector('.fishnclips-legend-aus');
+    if (legend) {
+      legend.style.display = isVisible ? 'block' : 'none';
+    }
+  ", jsonlite::toJSON(input$australia_map_groups)))
+  })
+
+  observe({
+    input$map_groups
+    shinyjs::runjs(sprintf("
+    var isVisible = %s.includes('FishNClips');
+    var legend = document.querySelector('.fishnclips-legend-map');
+    if (legend) {
+      legend.style.display = isVisible ? 'block' : 'none';
+    }
+  ", jsonlite::toJSON(input$map_groups)))
+  })
+
+
+  # Observe the radio button input and update the map ----
+  observe({
+    req(input$layer_toggle)  # Ensure toggle input is available
+
+    map_proxy <- leafletProxy("australia_map")
+
+    # Show/hide layers based on the selected radio button
+    if (input$layer_toggle == "Predicted") {
+      map_proxy %>%
+        showGroup("Predicted") %>%
+        hideGroup("Error")%>%
+        clearControls() %>%  # Clear all existing controls
+        addLegend(
+          position = "bottomright",
+          pal = colorNumeric(palette = viridisLite::turbo(256, direction = -1),
+                             domain = c(raster_predicted_data()$min, raster_predicted_data()$max)),
+          values = seq(
+            from = raster_predicted_data()$min,
+            to = raster_predicted_data()$max,
+            length.out = 5
+          ),  # Define 5 fixed values for the legend
+          title = "Predicted",
+          labFormat = labelFormat(transform = function(x) sort(x, decreasing = TRUE)),
+          opacity = 1
+        )
+    } else if (input$layer_toggle == "Error") {
+      map_proxy %>%
+        showGroup("Error") %>%
+        hideGroup("Predicted")%>%
+        clearControls() %>%  # Clear all existing controls
+        addLegend(
+          position = "bottomright",
+          pal = colorNumeric(palette = viridisLite::plasma(256, direction = -1),
+                             domain = c(raster_error_data()$min, raster_error_data()$max)),
+          # values = c(, ),
+          values = seq(
+            from = raster_error_data()$min,
+            to = raster_error_data()$max,
+            length.out = 5
+          ),  # Define 5 fixed values for the legend
+          title = "Error",
+          labFormat = labelFormat(transform = function(x) sort(x, decreasing = TRUE)),
+          opacity = 1
+        )
+    }
+  })
   
   # End of server ----
 }
