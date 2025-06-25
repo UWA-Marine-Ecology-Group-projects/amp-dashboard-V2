@@ -15,8 +15,8 @@ server <- function(input, output, session) {
   debounced_park <- debounce(reactive(input$marine_park), 300)
   
   output$marinepark_name <- renderUI({
-    req(debounced_park())
-    HTML(paste0("<b>", debounced_park(), "</b>"))
+    req(input$marine_park)
+    HTML(paste0("<b>", input$marine_park, "</b>")) # changed from debounced
   })
   
   # # Create Network Name Title (not used in server atm) ----
