@@ -74,7 +74,8 @@ ui <- page_navbar(
         ),
       ),
       
-      div(uiOutput("ecosystem_subcomponent_name")),
+      h4(htmlOutput("ecosystem_subcomponent_name")),
+      # div(uiOutput("ecosystem_subcomponent_name")),
       
       div(
         # card(

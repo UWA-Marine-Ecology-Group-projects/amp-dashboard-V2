@@ -19,7 +19,7 @@ server <- function(input, output, session) {
     HTML(paste0("<b>", debounced_park(), "</b>"))
   })
   
-  # # Create Network Name Title ----
+  # # Create Network Name Title (not used in server atm) ----
   ## Turned off because we are not showing network level atm
   # debounced_network <- debounce(reactive(input$network), 300)
   # 
@@ -28,6 +28,19 @@ server <- function(input, output, session) {
   #   HTML(paste0("<b>", debounced_network(), "</b>"))
   # })
   
+  # Create Ecosystem Component name (e.g. Demersal Fish, or Mobile macro inverts) ----
+  debounced_ecosystem_subcomponent <- debounce(reactive(input$ecosystemsubcomponent), 300)
+  
+  output$ecosystem_subcomponent_name <- renderUI({
+    req(debounced_ecosystem_subcomponent())
+    HTML(paste0("<i>", debounced_ecosystem_subcomponent(), "</i>"))
+  })
+
+  # # Indicator metric name (not used in server) ----
+  # output$metric_name <- renderUI({
+  #   req(input$options)
+  #   h5(HTML(paste0("<i>", input$options)))
+  # })
   
   
   
@@ -80,18 +93,7 @@ server <- function(input, output, session) {
   
 
   
-  # Ecosystem Component name ----
-  output$ecosystem_subcomponent_name <- renderUI({
-    req(input$ecosystemsubcomponent)
-    h4(HTML(paste0("<i>", input$ecosystemsubcomponent)))
-  })
-  
-  # Indicator metric name ----
-  output$metric_name <- renderUI({
-    req(input$options)
-    h5(HTML(paste0("<i>", input$options)))
-  })
-  
+
   # # Reset marine park input when switching toggle
   # observeEvent(input$toggle, {
   #   if (input$toggle == "Network") {
