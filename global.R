@@ -55,7 +55,8 @@ load("data/app/all_data.Rdata")
 initial_parks <- all_data$metadata %>% 
   filter(network == "South-west") %>%
   pull(marine_park) %>%
-  unique()
+  unique() %>%
+  sort()
 
 # FISHNCLIPS
 dat <- readRDS("data/fishnclips/dat.RDS") %>%

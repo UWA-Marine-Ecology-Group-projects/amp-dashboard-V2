@@ -12,7 +12,7 @@ server <- function(input, output, session) {
   )
   
   # Create Marine Park Name Title ----
-  debounced_park <- debounce(reactive(input$marine_park), 200)
+  debounced_park <- debounce(reactive(input$marine_park), 300)
   
   output$marinepark_name <- renderUI({
     req(debounced_park())
@@ -29,7 +29,7 @@ server <- function(input, output, session) {
   # })
   
   # Create Ecosystem Component name (e.g. Demersal Fish, or Mobile macro inverts) ----
-  debounced_ecosystem_subcomponent <- debounce(reactive(input$ecosystemsubcomponent), 200)
+  debounced_ecosystem_subcomponent <- debounce(reactive(input$ecosystemsubcomponent), 300)
   
   output$ecosystem_subcomponent_name <- renderUI({
     req(debounced_ecosystem_subcomponent())
@@ -61,7 +61,8 @@ server <- function(input, output, session) {
       dplyr::filter(network == debounced_network()) %>%
       dplyr::distinct(marine_park) %>%
       dplyr::filter(!marine_park %in% c("South-west Network", "North-west Network")) %>%
-      dplyr::pull(marine_park)
+      dplyr::pull(marine_park) %>%
+      sort()
     
     if (length(parks) > 0) {
       updateRadioButtons(
