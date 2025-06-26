@@ -182,13 +182,13 @@ server <- function(input, output, session) {
     plot_list <- all_data$file_info
     
     # if (input$toggle == "Marine Park") {
-      req(input$marine_park)  # Ensure marine_park input is selected
+      req(input$marine_park, input$ecosystemsubcomponent)  # Ensure marine_park input is selected
       
       message("view conditional data marine park")
       
       plot_list %>%
         dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% debounced_park()) %>%
+        dplyr::filter(marine_park %in% input$marine_park) %>%
         dplyr::filter(metric %in% input$ecosystemsubcomponent) %>% glimpse
     # } else {
     #   
@@ -262,10 +262,11 @@ server <- function(input, output, session) {
         input$network)
     
     # if (input$toggle == "Marine Park") {
-      req(debounced_park)  # Ensure marine_park input is selected
+      req(input$marine_park, input$ecosystemsubcomponent)  # Ensure marine_park input is selected
+      
       text <- all_data$text_data %>%
         dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% debounced_park()) %>%
+        dplyr::filter(marine_park %in% input$marine_park) %>%
         dplyr::filter(ecosystem_condition %in% input$ecosystemsubcomponent)
     # } else {
     #   text <- all_data$text_data %>%
@@ -283,10 +284,10 @@ server <- function(input, output, session) {
         input$network)
     
     # if (input$toggle == "Marine Park") {
-      req(input$marine_park)  # Ensure marine_park input is selected
+      req(input$marine_park, input$ecosystemsubcomponent)  # Ensure marine_park input is selected
       text <- all_data$text_data %>%
         dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% debounced_park()) %>%
+        dplyr::filter(marine_park %in% input$marine_park) %>%
         dplyr::filter(ecosystem_condition %in% input$ecosystemsubcomponent)
     # } else {
     #   text <- all_data$text_data %>%
@@ -306,10 +307,11 @@ server <- function(input, output, session) {
     plot_list <- all_data$temporal_file_info
     
     # if(input$toggle %in% "Marine Park"){
-      req(input$marine_park) # Ensure marine_park input is available
+      req(input$marine_park, input$options) # Ensure marine_park input is available
+      
       chosen_plot <- plot_list %>%
         dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% debounced_park()) %>%
+        dplyr::filter(marine_park %in% input$marine_park) %>%
         dplyr::filter(metric %in% input$options)
       
     # } else {
@@ -382,7 +384,7 @@ server <- function(input, output, session) {
       
       metadata %>%
         dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% debounced_park()) %>%
+        dplyr::filter(marine_park %in% input$marine_park) %>%
         dplyr::filter(ecosystem_component %in% input$ecosystemsubcomponent)
     # } else {
     #   metadata %>%
@@ -404,7 +406,7 @@ server <- function(input, output, session) {
       req(input$marine_park)  # Ensure marine_park input is selected
       raster_list %>%
         dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% debounced_park()) %>%
+        dplyr::filter(marine_park %in% input$marine_park) %>%
         dplyr::filter(metric %in% input$options) #%>% glimpse()
     # } else {
     #   raster_list %>%
@@ -426,7 +428,7 @@ server <- function(input, output, session) {
       req(input$marine_park)  # Ensure marine_park input is selected
       raster_list %>%
         dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% debounced_park()) %>%
+        dplyr::filter(marine_park %in% input$marine_park) %>%
         dplyr::filter(metric %in% input$options)
     # } else {
     #   raster_list %>%
@@ -606,10 +608,10 @@ server <- function(input, output, session) {
     stats <- all_data$stats
     
     # if (input$toggle == "Marine Park") {
-      req(input$ecosystemsubcomponent)  # Ensure marine_park input is selected
+      req(input$marine_park, input$ecosystemsubcomponent)  # Ensure marine_park input is selected
       stats %>%
         dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% debounced_park()) %>%
+        dplyr::filter(marine_park %in% input$marine_park) %>%
         dplyr::filter(ecosystem_component %in% input$ecosystemsubcomponent) #%>%
         #glimpse()
       
@@ -728,11 +730,11 @@ server <- function(input, output, session) {
     
     # if (input$toggle == "Marine Park") {
       
-      req(input$marine_park)  # Ensure marine_park input is selected
+      req(input$marine_park, input$ecosystemsubcomponent)  # Ensure marine_park input is selected
       
       data <- data %>%
         dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% debounced_park()) %>%
+        dplyr::filter(marine_park %in% input$marine_park) %>%
         dplyr::filter(ecosystem_component %in% input$ecosystemsubcomponent)
       
     # } else {
@@ -770,13 +772,13 @@ server <- function(input, output, session) {
     data <- all_data$synthesis_metadata
     
     # if (input$toggle == "Marine Park") {
-      req(input$marine_park)  # Ensure marine_park input is selected
+      req(input$marine_park, input$ecosystemsubcomponent)  # Ensure marine_park input is selected
       
       # message("view conditional data marine park")
       
       data <- data %>%
         dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% debounced_park()) %>%
+        dplyr::filter(marine_park %in% input$marine_park) %>%
         dplyr::filter(ecosystem_component %in% input$ecosystemsubcomponent)
     # } else {
     #   
@@ -811,13 +813,13 @@ server <- function(input, output, session) {
     
     # if (input$toggle == "Marine Park") {
       
-      req(input$marine_park)  # Ensure marine_park input is selected
+      req(input$marine_park, input$ecosystemsubcomponent)  # Ensure marine_park input is selected
       
       message("method data")
       
       data <- data %>%
         dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park_or_area %in% debounced_park()) %>%
+        dplyr::filter(marine_park_or_area %in% input$marine_park) %>%
         dplyr::filter(ecosystem_condition %in% input$ecosystemsubcomponent) #%>%
         #glimpse()
     #   
@@ -918,11 +920,11 @@ server <- function(input, output, session) {
     
     # if (input$toggle == "Marine Park") {
       
-      req(input$marine_park, input$ecosystemsubcomponent)  # Ensure marine_park input is selected
+      req(input$network, input$marine_park, input$ecosystemsubcomponent)  # Ensure marine_park input is selected
       
       data_filtered <- data %>%
         dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% debounced_park()) %>%
+        dplyr::filter(marine_park %in% input$marine_park) %>%
         dplyr::filter(ecosystem_component %in% input$ecosystemsubcomponent)# %>%
         #glimpse
     #   
@@ -955,11 +957,11 @@ server <- function(input, output, session) {
 
     # if (input$toggle == "Marine Park") {
 
-      req(input$marine_park)  # Ensure marine_park input is selected
+      req(input$network, input$marine_park, input$ecosystemsubcomponent)  # Ensure marine_park input is selected
 
       data <- data %>%
         dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% debounced_park()) %>%
+        dplyr::filter(marine_park %in% input$marine_park) %>%
         dplyr::filter(ecosystem_component %in% input$ecosystemsubcomponent)
 
     # } else {
@@ -996,11 +998,11 @@ server <- function(input, output, session) {
     
     # if (input$toggle == "Marine Park") {
     
-    req(input$marine_park)  # Ensure marine_park input is selected
+    req(input$network, input$marine_park, input$ecosystemsubcomponent)  # Ensure marine_park input is selected
     
     data <- data %>%
       dplyr::filter(network %in% input$network) %>%
-      dplyr::filter(marine_park %in% debounced_park()) %>%
+      dplyr::filter(marine_park %in% input$marine_park) %>%
       dplyr::filter(ecosystem_component %in% input$ecosystemsubcomponent)
     
     # } else {
@@ -1044,12 +1046,12 @@ init_species_map <- reactive({
   #   req(input$marine_park)  # Ensure marine_park input is selected
     data <- data %>%
       # dplyr::filter(network %in% input$network) %>%
-      dplyr::filter(marine_park %in% debounced_park()) %>%
+      dplyr::filter(marine_park %in% input$marine_park) %>%
       dplyr::filter(ecosystem_component %in% input$ecosystemsubcomponent)
 
     metadata <- metadata %>%
       # dplyr::filter(network %in% input$network) %>%
-      dplyr::filter(marine_park %in% debounced_park()) %>%
+      dplyr::filter(marine_park %in% input$marine_park) %>%
       dplyr::filter(ecosystem_component %in% input$ecosystemsubcomponent)
   # #
   # # } else {
@@ -1140,7 +1142,7 @@ output$species_year_slider_length <- renderUI({
 })
 observeEvent(input$species, {
   observeEvent(input$year, {
-    # req(input$year)  # Ensure year is selected
+    req(input$species)  # Ensure year is selected
 
     data <- all_data$bubble_data %>%
       dplyr::filter(display_name %in% input$species)
@@ -1149,16 +1151,16 @@ observeEvent(input$species, {
 
     # if (input$toggle == "Marine Park") {
 
-      req(input$marine_park)  # Ensure marine_park input is selected
+      req(input$network, input$marine_park, input$ecosystemsubcomponent)  # Ensure marine_park input is selected
 
       data <- data %>%
         dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% debounced_park()) %>%
+        dplyr::filter(marine_park %in% input$marine_park) %>%
         dplyr::filter(ecosystem_component %in% input$ecosystemsubcomponent)
 
       metadata <- metadata %>%
         dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% debounced_park()) %>%
+        dplyr::filter(marine_park %in% input$marine_park) %>%
         dplyr::filter(ecosystem_component %in% input$ecosystemsubcomponent)
 
     # } else {
@@ -1241,11 +1243,11 @@ year_data <- reactive({
 
   # if (input$toggle == "Marine Park") {
 
-    req(input$marine_park)  # Ensure marine_park input is selected
+    req(input$network, input$marine_park, input$ecosystemsubcomponent)  # Ensure marine_park input is selected
 
     metadata <- metadata %>%
       dplyr::filter(network %in% input$network) %>%
-      dplyr::filter(marine_park %in% debounced_park()) %>%
+      dplyr::filter(marine_park %in% input$marine_park) %>%
       dplyr::filter(ecosystem_component %in% input$ecosystemsubcomponent)
 
   # } else {
@@ -1304,11 +1306,11 @@ year_data <- reactive({
 
     # if (input$toggle == "Marine Park") {
 
-      req(input$marine_park)  # Ensure marine_park input is selected
+      req(input$marine_park, input$ecosystemsubcomponent)  # Ensure marine_park input is selected
 
       data <- data %>%
         # dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% debounced_park()) %>%
+        dplyr::filter(marine_park %in% input$marine_park) %>%
         dplyr::filter(ecosystem_component %in% input$ecosystemsubcomponent)
 
     # } else {
@@ -1420,11 +1422,11 @@ year_data <- reactive({
 
       # if (input$toggle == "Marine Park") {
 
-        req(input$marine_park)  # Ensure marine_park input is selected
+        req(input$marine_park, input$ecosystemsubcomponent)  # Ensure marine_park input is selected
 
         data <- data %>%
           # dplyr::filter(network %in% input$network) %>%
-          dplyr::filter(marine_park %in% debounced_park()) %>%
+          dplyr::filter(marine_park %in% input$marine_park) %>%
           dplyr::filter(ecosystem_component %in% input$ecosystemsubcomponent)
 
       # } else {
@@ -1497,7 +1499,7 @@ year_data <- reactive({
 
       data <- data %>%
         dplyr::filter(network %in% input$network) %>%
-        dplyr::filter(marine_park %in% debounced_park())
+        dplyr::filter(marine_park %in% input$marine_park)
 
     # } else {
     #
@@ -1819,7 +1821,7 @@ year_data <- reactive({
     length <- all_data$length_combined %>%
       dplyr::filter(display_name %in% input$specieslength) %>%
       dplyr::filter(network %in% input$network) %>%
-      dplyr::filter(marine_park %in% debounced_park()) %>%
+      dplyr::filter(marine_park %in% input$marine_park) %>%
       dplyr::filter(ecosystem_component %in% input$ecosystemsubcomponent) %>%
       dplyr::glimpse()
     
@@ -1827,11 +1829,11 @@ year_data <- reactive({
     
     # if (input$toggle == "Marine Park") {
     
-    req(input$marine_park)  # Ensure marine_park input is selected
+    req(input$marine_park, input$ecosystemsubcomponent)  # Ensure marine_park input is selected
     
     metadata <- metadata %>%
       dplyr::filter(network %in% input$network) %>%
-      dplyr::filter(marine_park %in% debounced_park()) %>%
+      dplyr::filter(marine_park %in% input$marine_park) %>%
       dplyr::filter(ecosystem_component %in% input$ecosystemsubcomponent)
     
     message("combined length with year")
@@ -1861,14 +1863,14 @@ year_data <- reactive({
   
   output$length_histogram_density <- renderPlot({
     
-    req(input$binwidth)
+    req(input$specieslength, input$marine_park, input$ecosystemsubcomponent, input$binwidth)
     
     message("length hist data")
     
     length <- all_data$length_combined %>%
       dplyr::filter(display_name %in% input$specieslength) %>%
       dplyr::filter(network %in% input$network) %>%
-      dplyr::filter(marine_park %in% debounced_park()) %>%
+      dplyr::filter(marine_park %in% input$marine_park) %>%
       dplyr::filter(ecosystem_component %in% input$ecosystemsubcomponent) %>%
       ungroup() %>%
       dplyr::select(-geometry) %>%
@@ -1880,7 +1882,7 @@ year_data <- reactive({
     
     metadata <- metadata %>%
       dplyr::filter(network %in% input$network) %>%
-      dplyr::filter(marine_park %in% debounced_park()) %>%
+      dplyr::filter(marine_park %in% input$marine_park) %>%
       dplyr::filter(ecosystem_component %in% input$ecosystemsubcomponent)
     
     message("combined length with year")
@@ -1933,7 +1935,8 @@ year_data <- reactive({
 
   # # Create map for Dashboard ----
   output$australia_map <- renderLeaflet({
-    # req(input$toggle, input$network, input$options)
+    req(#input$toggle, \
+      input$network, input$options)
 
     points_og <- metadata_filtered_data() %>%
       dplyr::mutate(year = str_sub(date_time, 1, 4))
