@@ -3,16 +3,123 @@ library(dplyr)
 library(googlesheets4)
 library(stringr)
 
+set.seed(1)
+
+
 # Read in files created in earlier scripts ----
 # Read in metadata ----
-metadata <- read_rds("data/app/metadata.rds")
+metadata_bruv <- read_rds("data/app/metadata.rds") %>%
+  dplyr::mutate(method = "stereo-BRUV")
+
+# ---- helper: jitter lon/lat in a park-safe way ----
+jitter_coords <- function(df, lon_col = "longitude_dd", lat_col = "latitude_dd",
+                          lon_sd = 0.02, lat_sd = 0.02) {
+  df %>%
+    mutate(
+      "{lon_col}" := .data[[lon_col]] + rnorm(n(), 0, lon_sd),
+      "{lat_col}" := .data[[lat_col]] + rnorm(n(), 0, lat_sd)
+    )
+}
+
+# ---- pick which parks get which methods ----
+parks <- sort(unique(metadata_bruv$marine_park))
+
+n_all3 <- round(length(parks) * 0.35)
+n_two  <- round(length(parks) * 0.35)
+
+parks_all3 <- sample(parks, n_all3)
+parks_remaining <- setdiff(parks, parks_all3)
+parks_two <- sample(parks_remaining, n_two)
+parks_one <- setdiff(parks, c(parks_all3, parks_two))
+
+two_method_extra <- tibble(
+  marine_park = parks_two,
+  extra = sample(c("UVC", "stereo-ROV"), length(parks_two), replace = TRUE)
+)
+
+parks_with_uvc <- c(parks_all3, two_method_extra$marine_park[two_method_extra$extra == "UVC"])
+parks_with_rov <- c(parks_all3, two_method_extra$marine_park[two_method_extra$extra == "stereo-ROV"])
+
+# ---- per-park sample sizes ----
+park_sizes <- tibble(
+  marine_park = parks,
+  n_bruv = sample(30:120, length(parks), replace = TRUE),
+  n_uvc  = sample(10:80,  length(parks), replace = TRUE),
+  n_rov  = sample(5:50,   length(parks), replace = TRUE)
+)
+
+# ---- subsample helper that supports per-group n ----
+subsample_by_group_n <- function(df, n_df, n_col) {
+  df %>%
+    left_join(n_df %>% select(marine_park, keep_n = all_of(n_col)), by = "marine_park") %>%
+    group_by(marine_park) %>%
+    group_modify(~ slice_sample(.x, n = min(nrow(.x), .y$keep_n[1]))) %>%
+    ungroup() %>%
+    select(-keep_n)
+}
+
+# ---- BRUV base (subsampled) ----
+metadata_bruv_sub <- subsample_by_group_n(metadata_bruv, park_sizes, "n_bruv")
+
+# ---- clone + subsample + jitter for a method ----
+make_method_clone <- function(df_source, method_name, size_col, lon_sd, lat_sd) {
+  subsample_by_group_n(df_source, park_sizes, size_col) %>%
+    mutate(method = method_name) %>%
+    jitter_coords(lon_sd = lon_sd, lat_sd = lat_sd)
+}
+
+metadata_uvc_all <- make_method_clone(
+  df_source = metadata_bruv,
+  method_name = "UVC",
+  size_col = "n_uvc",
+  lon_sd = 0.01, lat_sd = 0.01
+)
+
+metadata_rov_all <- make_method_clone(
+  df_source = metadata_bruv,
+  method_name = "stereo-ROV",
+  size_col = "n_rov",
+  lon_sd = 0.015, lat_sd = 0.015
+)
+
+# ---- keep only parks that “have” those methods ----
+metadata_uvc_sub <- metadata_uvc_all %>% filter(marine_park %in% parks_with_uvc)
+metadata_rov_sub <- metadata_rov_all %>% filter(marine_park %in% parks_with_rov)
+
+# ---- final dummy metadata ----
+metadata <- bind_rows(
+  metadata_bruv_sub,
+  metadata_uvc_sub,
+  metadata_rov_sub
+) %>%
+  filter(!is.na(longitude_dd), !is.na(latitude_dd)) %>%
+  mutate(
+    method = case_when(
+      str_detect(tolower(method), "bruv") ~ "stereo-BRUV",
+      str_detect(tolower(method), "uvc")  ~ "UVC",
+      str_detect(tolower(method), "rov")  ~ "stereo-ROV",
+      TRUE ~ "Other"
+    )
+  ) %>%
+  dplyr::filter(!(marine_park %in% "Geographe Marine Park" & method %in% "stereo-ROV"))
+
+# sanity check: parks with 1/2/3 methods
+print(
+  metadata %>%
+    distinct(marine_park, method) %>%
+    count(marine_park, name = "n_methods") %>%
+    count(n_methods)
+)
 
 # Read in raster data ----
 raster_data <- read_rds("data/app/raster_data.rds")
 
 # Read in basic stats ----
 stats <- read_rds("data/app/stats.RDS")
-top_species <- read_rds("data/app/top_species.RDS")
+top_species <- read_rds("data/app/top_species.RDS") %>%
+  dplyr::filter(ecosystem_component %in% "Demersal fish") %>%
+  dplyr::mutate(method = "stereo-BRUV")
+
 bubble_data <- read_rds("data/app/bubble_data.RDS")
 synthesis_metadata <- read_rds("data/app/synthesis_metadata.RDS")
 metric_bubble_data <- read_rds("data/app/metric_bubble_data.RDS")
@@ -68,8 +175,6 @@ method_data <- read_sheet("https://docs.google.com/spreadsheets/d/1Iplohv6mM-Cnp
 text_data <- read_sheet("https://docs.google.com/spreadsheets/d/1Iplohv6mM-CnpE6uYBi4uQnuhCyZMNpCRMSJFFnJxjM/edit?usp=sharing",
                         sheet = "simplified_text_data")
 
-
-
 # read in condition plot information ----
 # Define the folder path containing the .rds files for the condition plots
 folder_path <- "plots/condition"
@@ -119,8 +224,13 @@ temporal_file_info <- do.call(rbind, lapply(rds_files, function(f) {
 
 foa_codes <- data.table::data.table(foa_codes)
 
-# Combine all information together -----
+# Read in dummy trend data from henry's google sheet ----
+henry_url <- "https://docs.google.com/spreadsheets/d/1PG3q_5GqesA500j0h0xdizqYPlmXr8hQMnEX-z0Vvjc/edit?usp=sharing"
 
+trend_data <- read_sheet(henry_url, "write.demersal.fish.metrics")
+trend_data_fish <- read_sheet(henry_url, "write.demersal.fish.species")
+
+# Combine all information together -----
 all_data <- structure(
   list(
     # networks_and_parks = networks_and_parks,
@@ -139,7 +249,9 @@ all_data <- structure(
     synthesis_metadata = synthesis_metadata,
     temporal_data = temporal_data,
     foa_codes = foa_codes,
-    length_combined = length_combined
+    length_combined = length_combined,
+    trend_data = trend_data,
+    trend_data_fish = trend_data_fish
   ),
   class = "data"
 )

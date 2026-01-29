@@ -16,51 +16,32 @@ library(data.table)
 library(leaflet.extras2)
 library(shinyWidgets)
 library(ggforce)
-# library(RGraphics)
-library(ggimage) # for adding icons
+library(ggimage)
 library(shinyalert)
 library(sf)
+library(htmltools)
+library(ggtext)
+library(tidytext)
+library(later)
+# thematic::thematic_shiny()
 
-options(shiny.reactlog = TRUE)
-
-# Load the data
-# dropdown_data <- read.csv(here::here("data/dropdowns.csv"), stringsAsFactors = FALSE)
-
-thematic::thematic_shiny()
-
-# TODO - Italic species names in the top ten plots
-# TODO - think about if the Depth range and Average depth is from the data or of the park
-# TODO - Add stereo-boss deployments to the stats
-# TODO - Add a method column in the gs for bruv or boss to calc the deploymnet numbers
-
-# TODO - change the way that the habitat is plotted in the dropdowns - need one selectionfor each habitat type, because can't display them all on a map due to the prediction and error
-
-# Define the theme using bslib ----
+# ---- Theme ----
 theme <- bs_theme(
-  bg = "#FFFFFF",  # Background color
-  fg = "#000000",  # Foreground color
-  primary = "#007BFF",  # Primary color
-  secondary = "#6C757D",  # Secondary color
-  base_font = font_google("Lato")  # Use Lato font from Google Fonts
+  bg = "#FFFFFF",
+  fg = "#000000",
+  primary = "#0B417C",
+  secondary = "#0F5AAB",
+  base_font = font_google("Lato")
 )
 
-# Generate 100 random points for the Leaflet map (dummy data) ----
-set.seed(123)
-dummy_points <- data.frame(
-  lat = runif(100, min = -35.2, max = -33.5),  # Latitude range for SW corner of WA
-  lng = runif(100, min = 114.5, max = 116.5)   # Longitude range for SW corner of WA
-)
-
-# Load data ----
+# ---- Load data ----
 load("data/app/all_data.Rdata")
 
-initial_parks <- all_data$metadata %>% 
-  filter(network == "South-west") %>%
-  pull(marine_park) %>%
-  unique() %>%
-  sort()
+# Dropdown data
+df <- all_data$metadata %>%
+  distinct(marine_park, network)
 
-# FISHNCLIPS
+# FishNClips data
 dat <- readRDS("data/fishnclips/dat.RDS") %>%
   dplyr::rename(latitude = latitude_dd, longitude = longitude_dd)
 
@@ -68,93 +49,155 @@ commonwealth.mp <- readRDS("data/fishnclips/commonwealth.mp.RDS")
 state.mp <- readRDS("data/fishnclips/state.mp.RDS")
 ngari.mp <- readRDS("data/fishnclips/ngari.mp.RDS")
 
-state.pal <- colorFactor(c("#bfaf02", # conservation
-                           "#7bbc63", # sanctuary = National Park
-                           "#fdb930", # recreation
-                           "#b9e6fb", # general use
-                           '#ccc1d6' # special purpose
-), state.mp$zone)
-
-commonwealth.pal <- colorFactor(c("#f6c1d9", # Sanctuary
-                                  "#7bbc63", # National Park
-                                  "#fdb930", # Recreational Use
-                                  "#fff7a3", # Habitat Protection
-                                  '#b9e6fb', # Multiple Use
-                                  '#ccc1d6'# Special Purpose
-), commonwealth.mp$zone)
-
-# Make icon for images and videos----
-# html_legend <- "<div style='width: auto; height: 45px'> <div style='position: relative; display: inline-block; width: 36px; height: 45px' <img src='images/marker_red.png'> </div> <p style='position: relative; top: 15px; display: inline-block; ' > BRUV </p> </div>
-# <div style='width: auto; height: 45px'> <div style='position: relative; display: inline-block; width: 36px; height: 45px' <img src='images/marker_red.png'> </div> <p style='position: relative; top: 15px; display: inline-block; ' > BRUV </p> </div>
-# <div style='width: auto; height: 45px'> <div style='position: relative; display: inline-block; width: 36px; height: 45px' <img src='images/marker_red.png'> </div> <p style='position: relative; top: 15px; display: inline-block; ' > BRUV </p> </div>"
-
-html_legend <- "<div style='padding: 0px; padding-bottom: 0px;'><b style='padding-top:0; padding-bottom:10px; margin: 0;'> Marker Legend </b><br/>
-
-<img src='https://github.com/UWAMEGFisheries/UWAMEGFisheries.github.io/blob/master/images/markers/marker_yellow.png?raw=true'
-style='width:30px;height:30px;'> Fish highlights <br/>
-
-<img src='https://github.com/UWAMEGFisheries/UWAMEGFisheries.github.io/blob/master/images/markers/marker_green.png?raw=true'
-style='width:30px;height:30px;'> Habitat imagery (stereo-BRUV)<br/>
-
-<img src='https://github.com/UWAMEGFisheries/UWAMEGFisheries.github.io/blob/master/images/markers/marker_pink.png?raw=true'
-style='width:30px;height:30px;'> Habitat imagery (BOSS)<br/>
-
-<img src='https://github.com/UWAMEGFisheries/UWAMEGFisheries.github.io/blob/master/images/markers/marker_purple.png?raw=true'
-style='width:30px;height:30px;'> 3D models"
-
-
-n <- 100
-data <- data.frame(
-  x = seq(1, n),
-  y = rpois(n, 100)
+state.pal <- colorFactor(
+  c("#bfaf02", "#7bbc63", "#fdb930", "#b9e6fb", "#ccc1d6"),
+  state.mp$zone
 )
 
-ggplot_theme <- 
-ggplot2::theme_bw() +
-  ggplot2::theme( # use theme_get() to see available options
-    panel.grid = ggplot2::element_blank(),
-    panel.border = ggplot2::element_blank(),
-    axis.line = ggplot2::element_line(colour = "black"),
-    panel.grid.major = ggplot2::element_blank(),
-    panel.grid.minor = ggplot2::element_blank(),
-    legend.background = ggplot2::element_blank(),
-    legend.key = ggplot2::element_blank(), # switch off the rectangle around symbols in the legend
-    legend.text = ggplot2::element_text(size = 12),
-    legend.title = ggplot2::element_blank(),
-    # legend.position = "top",
-    text = ggplot2::element_text(size = 12),
-    strip.text.y = ggplot2::element_text(size = 12, angle = 0),
-    axis.title.x = ggplot2::element_text(vjust = 0.3, size = 12),
-    axis.title.y = ggplot2::element_text(vjust = 0.6, angle = 90, size = 12),
-    axis.text.y = ggplot2::element_text(size = 12),
-    axis.text.x = ggplot2::element_text(size = 12, angle = 90, vjust = 0.5, hjust=1),
-    axis.line.x = ggplot2::element_line(colour = "black", size = 0.5, linetype = "solid"),
-    axis.line.y = ggplot2::element_line(colour = "black", size = 0.5, linetype = "solid"),
-    strip.background = ggplot2::element_blank(),
-    
-    strip.text = ggplot2::element_text(size = 14, angle = 0),
-    
-    plot.title = ggplot2::element_text(color = "black", size = 12, face = "bold.italic")
-  )
+commonwealth.pal <- colorFactor(
+  c("#f6c1d9", "#7bbc63", "#fdb930", "#fff7a3", "#b9e6fb", "#ccc1d6"),
+  commonwealth.mp$zone
+)
 
-add_legend <- function(map, colors, labels, sizes, opacity = 1, group, title) { #map, 
-  colorAdditions <- glue::glue(
-    "{colors}; border-radius: 50%; width:{sizes}px; height:{sizes}px"
-  )
-  labelAdditions <- glue::glue(
-    "<div style='display: inline-block; height: {sizes}px; ",
-    "margin-top: 4px;line-height: {sizes}px;'>{labels}</div>"
-  )
-  
-  return(
-    leaflet::addLegend(map,
-                       colors = colorAdditions,
-                       labels = labelAdditions,
-                       opacity = opacity,
-                       title = title,
-                       position = "topright",
-                       group = group
-    )
+zone_cols <- c(
+  "Habitat Protection Zone" = "#F1E189",
+  "Multiple Use Zone"       = "#9CC9E6",
+  "National Park Zone"      = "#6DBD6D",
+  "Special Purpose Zone"    = "#4F88C6"
+)
+
+# ---- Method colours ----
+method_cols <- c(
+  "stereo-BRUV" = "#2E8B57",
+  "UVC"         = "#F39C12",
+  "stereo-ROV"  = "#8E44AD",
+  "Other"       = "#7f8c8d"
+)
+
+
+method_to_id <- function(method) {
+  # stable, valid outputId (letters/numbers/_ only)
+  paste0(
+    "assemblage_map_",
+    gsub("[^a-z0-9]+", "_", tolower(method))
   )
 }
 
+# ---- Base map ----
+base_map <- function(max_zoom = 18) {
+  leaflet() |>
+    addTiles(options = tileOptions(minZoom = 4, maxZoom = max_zoom)) |>
+    addMapPane("polys",  zIndex = 410) |>
+    addMapPane("points", zIndex = 420) |>
+    addPolygons(
+      data = commonwealth.mp,
+      color = "black", weight = 1,
+      fillColor = ~commonwealth.pal(zone), fillOpacity = 0.8,
+      group = "Australian Marine Parks",
+      popup = ~ZoneName,
+      options = pathOptions(pane = "polys")
+    ) |>
+    addLegend(
+      pal = commonwealth.pal,
+      values = commonwealth.mp$zone,
+      opacity = 1,
+      title = "Australian Marine Park Zones",
+      position = "bottomleft",
+      group = "Australian Marine Parks"
+    ) |>
+    addLayersControl(
+      baseGroups = c("World Imagery", "Open Street Map"),
+      overlayGroups = c("Australian Marine Parks", "Sampling locations"),
+      options = layersControlOptions(collapsed = FALSE),
+      position = "topright"
+    )
+}
+
+# ---- Method legend HTML builder (single container, updated each time) ----
+render_method_legend_html <- function(methods_present) {
+  methods_present <- methods_present[methods_present %in% names(method_cols)]
+  cols <- unname(method_cols[methods_present])
+  
+  items <- paste0(
+    "<div style='display:flex;align-items:center;margin:2px 0;'>",
+    "<span style='width:12px;height:12px;background:", cols,
+    ";display:inline-block;margin-right:6px;border:1px solid rgba(255,255,255,0.6)'></span>",
+    methods_present,
+    "</div>",
+    collapse = ""
+  )
+  
+  paste0(
+    "<div class='leaflet-control leaflet-bar' style='background:white;padding:8px 10px;border-radius:6px;'>",
+    "<div style='font-weight:700;margin-bottom:6px;'>Method</div>",
+    items,
+    "</div>"
+  )
+}
+
+# TODO - make this the real data
+park_method_summary <- all_data$metadata %>%
+  mutate(
+    method = case_when(
+      str_detect(tolower(method), "bruv") ~ "stereo-BRUV",
+      str_detect(tolower(method), "uvc")  ~ "UVC",
+      str_detect(tolower(method), "rov")  ~ "stereo-ROV",
+      TRUE ~ "Other"
+    )
+  ) %>%
+  filter(method %in% c("stereo-BRUV", "UVC", "stereo-ROV")) %>%
+  count(marine_park, method, name = "deployments") %>%
+  mutate(
+    fish_counted = 0,
+    fish_species = 0,
+    other_species = 0,
+    length_measurements = 0,
+    years_min = 2010, years_max = 2024,
+    depth_min_m = 0, depth_max_m = 50,
+    avg_depth_m = 25,
+    deployments_with_benthos = 0,
+    deployments_with_relief = 0,
+    synthesis_id = "demo"
+  )
+
+# ---- 1) pick/standardise the columns we need ----
+prep_effort_df <- function(metadata) {
+  metadata %>%
+    mutate(
+      year = suppressWarnings(as.integer(stringr::str_sub(as.character(date_time), 1, 4))),
+      method = factor(method, levels = c("stereo-BRUV", "UVC", "stereo-ROV"))
+    ) %>%
+    filter(method %in% levels(method), !is.na(year))
+}
+
+t <- prep_effort_df(all_data$metadata)
+names(t) %>% sort()
+
+ggplot_theme_base <- ggplot2::theme_bw() +
+  ggplot2::theme(
+    panel.grid = ggplot2::element_blank(),
+    panel.border = ggplot2::element_blank(),
+    axis.line = ggplot2::element_line(colour = "black"),
+    legend.background = ggplot2::element_blank(),
+    legend.key = ggplot2::element_blank(),
+    legend.text = ggplot2::element_text(size = 12),
+    legend.title = ggplot2::element_blank(),
+    strip.background = ggplot2::element_blank(),
+    strip.text = ggplot2::element_text(size = 14),
+    axis.text.x = ggplot2::element_text(size = 12, angle = 90, vjust = 0.5, hjust = 1),
+    plot.title = ggplot2::element_text(color = "black", size = 12, face = "bold.italic")
+  )
+
+ggplot_theme_md <- function() {
+  ggplot_theme_base %+replace%
+    ggplot2::theme(
+      axis.text.y = ggtext::element_markdown(size = 12, lineheight = 1.1)
+    )
+}
+
+spinnerPlotOutput <- function(outputId, ...) {
+  withSpinner(
+    plotOutput(outputId, ...),
+    type = 6
+  )
+}

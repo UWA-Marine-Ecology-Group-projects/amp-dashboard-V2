@@ -1,0 +1,72 @@
+/* Only the marine_park dropdown */
+#marine_park-selectized + .selectize-control .selectize-dropdown {
+  max-height: 800px !important;
+}
+#marine_park-selectized + .selectize-control .selectize-dropdown-content {
+  max-height: 800px !important;
+}
+
+/* Custom buttons */
+.custom-button {
+  background-color: var(--bs-secondary) !important;
+  border-color: var(--bs-secondary) !important;
+  color: white !important;
+  width: 100%;
+  display: block;
+  text-decoration: none;
+}
+
+.custom-button:hover {
+  filter: brightness(0.9);
+  color: white !important;
+  text-decoration: none;
+}
+
+/* Park banner */
+.park-hero {
+  position: relative;
+  width: 100%;
+  height: 220px;
+  overflow: hidden;
+  border-radius: 16px;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.15);
+}
+
+.park-hero-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+  /* NOTE: removed invalid 'style:' line */
+  margin-bottom: 50px;
+}
+
+.park-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, rgba(0,0,0,0.05), rgba(0,0,0,0.05));
+  z-index: 2;
+}
+
+.park-hero-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #ffffff !important;
+  font-weight: 800;
+  text-align: center;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.7);
+  font-size: clamp(22px, 3.5vw, 36px);
+  z-index: 3;
+  width: 90%;
+}
+
+.vb-grid-tight .bslib-grid { gap: 0.3rem !important; }
+
+.vb-grid-tight .bslib-grid > * {
+  padding: 0 !important;
+  margin: 0 !important;
+}
