@@ -29,7 +29,7 @@ ui <- page_navbar(
       "marine_park",
       label = NULL,
       choices = split(df$marine_park, df$network),
-      selected = df$marine_park[[1]],   # <- pick the first park as default
+      selected = "Geographe Marine Park", #df$marine_park[[1]],   # <- pick the first park as default
       options = list(
         placeholder = "Start typing a park name...",
         dropdownHeight = "800px",
@@ -109,22 +109,39 @@ ui <- page_navbar(
               
             )),
           nav_panel(title = "State & Trend:", 
-                    
-                    selectizeInput(
-                      "trend_metric",
-                      width = "100%",
-                      label = NULL,
-                      choices = c("Large Reef Fish Index* (B20*)",
-                                  "Reef Fish Thermal Index"),
-                      selected = "Large Reef Fish Index* (B20*)",   # <- pick the first park as default
-                      options = list(
-                        placeholder = "Choose and indicator metric:",
-                        dropdownHeight = "800px",
-                        maxOptions = 5000
+                      
+                    navset_card_tab(
+                      id = "trend_metric_tab",
+                      
+                      nav_panel(
+                        title = "Large Reef Fish Index* (B20*)",
+                        uiOutput("trend_plots_b20_ui"),
+                        uiOutput("b20_blocks_ui")
+                      ),
+                      
+                      nav_panel(
+                        title = "Reef Fish Thermal Index",
+                        uiOutput("trend_plots_rfti_ui"),
+                        uiOutput("rfti_blocks_ui")
                       )
                     ),
                     
-                    uiOutput("trend_plots_ui"),
+                    
+                    # selectizeInput(
+                    #   "trend_metric",
+                    #   width = "100%",
+                    #   label = NULL,
+                    #   choices = c("Large Reef Fish Index* (B20*)",
+                    #               "Reef Fish Thermal Index"),
+                    #   selected = "Large Reef Fish Index* (B20*)",   # <- pick the first park as default
+                    #   options = list(
+                    #     placeholder = "Choose and indicator metric:",
+                    #     dropdownHeight = "800px",
+                    #     maxOptions = 5000
+                    #   )
+                    # ),
+                    # 
+                    # uiOutput("trend_plots_ui"),
                     
                     div())
         )

@@ -229,6 +229,7 @@ henry_url <- "https://docs.google.com/spreadsheets/d/1PG3q_5GqesA500j0h0xdizqYPl
 
 trend_data <- read_sheet(henry_url, "write.demersal.fish.metrics")
 trend_data_fish <- read_sheet(henry_url, "write.demersal.fish.species")
+raster_tags <- read_sheet(henry_url, "raster_tags")
 
 # Combine all information together -----
 all_data <- structure(
@@ -251,7 +252,8 @@ all_data <- structure(
     foa_codes = foa_codes,
     length_combined = length_combined,
     trend_data = trend_data,
-    trend_data_fish = trend_data_fish
+    trend_data_fish = trend_data_fish,
+    raster_tags = raster_tags
   ),
   class = "data"
 )

@@ -21,7 +21,7 @@ base_map <- function(max_zoom = 18, current_zoom = 6) {
     ) |>
     addLayersControl(
       baseGroups = c("World Imagery", "Open Street Map"),
-      overlayGroups = c("Australian Marine Parks", "Sampling locations"),
+      overlayGroups = c("Australian Marine Parks", "Sampling locations", "Probability", "Error"),
       options = layersControlOptions(collapsed = FALSE),
       position = "topright"
     )
@@ -52,36 +52,36 @@ method_legend_control <- function(pal, values, title = "Method") {
   htmltools::HTML(html)
 }
 
-make_trend_plot <- function(df, y_label, management_change_year = 2018) {
-  ggplot(df, aes(x = year, y = mean, colour = zone, group = zone)) +
-    geom_vline(xintercept = management_change_year, linetype = "dashed", linewidth = 0.5) +
-    geom_line(linewidth = 0.8) +
-    geom_point(size = 2) +
-    geom_linerange(aes(ymin = mean - se, ymax = mean + se), linewidth = 0.5) +
-    facet_wrap(
-      ~ depth_class,
-      ncol = 1,
-      scales = "free_y",
-      labeller = labeller(depth_class = function(x) paste0("Depth: ", x))
-    ) +
-    scale_colour_manual(values = zone_cols, name = "Australian Marine Parks") +
-    scale_x_continuous(
-      breaks = c(2016, 2019, 2022),
-      expand = expansion(mult = c(0.03, 0.06))
-    ) +
-    labs(
-      x = "Year",
-      y = y_label
-    ) +
-    theme_classic(base_size = 11) +
-    theme(
-      legend.position = "top",
-      legend.direction = "horizontal",
-      strip.background = element_blank(),
-      strip.text = element_text(face = "italic"),
-      axis.title.y = element_text(margin = margin(r = 10))
-    )
-}
+# make_trend_plot <- function(df, y_label, management_change_year = 2018) {
+#   ggplot(df, aes(x = year, y = mean, colour = zone, group = zone)) +
+#     geom_vline(xintercept = management_change_year, linetype = "dashed", linewidth = 0.5) +
+#     geom_line(linewidth = 0.8) +
+#     geom_point(size = 2) +
+#     geom_linerange(aes(ymin = mean - se, ymax = mean + se), linewidth = 0.5) +
+#     facet_wrap(
+#       ~ depth_class,
+#       ncol = 1,
+#       scales = "free_y",
+#       labeller = labeller(depth_class = function(x) paste0("Depth: ", x))
+#     ) +
+#     scale_colour_manual(values = zone_cols, name = "Australian Marine Parks") +
+#     scale_x_continuous(
+#       breaks = c(2016, 2019, 2022),
+#       expand = expansion(mult = c(0.03, 0.06))
+#     ) +
+#     labs(
+#       x = "Year",
+#       y = y_label
+#     ) +
+#     theme_classic(base_size = 11) +
+#     theme(
+#       legend.position = "top",
+#       legend.direction = "horizontal",
+#       strip.background = element_blank(),
+#       strip.text = element_text(face = "italic"),
+#       axis.title.y = element_text(margin = margin(r = 10))
+#     )
+# }
 
 
 
@@ -697,7 +697,7 @@ server <- function(input, output, session) {
             )
         })
         
-        outputOptions(output, id, suspendWhenHidden = FALSE)
+        # outputOptions(output, id, suspendWhenHidden = FALSE)
       }
     },
     ignoreInit = TRUE
@@ -738,96 +738,1135 @@ server <- function(input, output, session) {
   )
   
   # Trends ---
-  trend_metric_code <- reactive({
-    req(input$trend_metric)
-    
-    dplyr::case_when(
-      input$trend_metric == "Large Reef Fish Index* (B20*)" ~ "B20",
-      input$trend_metric == "Reef Fish Thermal Index"       ~ "RFTI",  # <-- change if your sheet uses a different code
-      TRUE ~ NA_character_
-    )
-  })
+  # trend_metric_code <- reactive({
+  #   req(input$trend_metric)
+  #   
+  #   dplyr::case_when(
+  #     input$trend_metric == "Large Reef Fish Index* (B20*)" ~ "B20",
+  #     input$trend_metric == "Reef Fish Thermal Index"       ~ "RFTI",  # <-- change if your sheet uses a different code
+  #     TRUE ~ NA_character_
+  #   )
+  # })
+  # 
+  # trend_df_park <- reactive({
+  #   req(input$marine_park)
+  #   req(trend_metric_code())
+  #   
+  #   df <- all_data$trend_data  
+  #   
+  #   df %>%
+  #     dplyr::filter(
+  #       marine_park == input$marine_park,
+  #       metric == trend_metric_code()
+  #     ) %>%
+  #     dplyr::mutate(
+  #       date = as.Date(date),
+  #       year = lubridate::year(date),
+  #       zone = factor(zone, levels = names(zone_cols)),
+  #       depth_class = factor(depth_class, levels = c("0-30 m", "30-70 m"))
+  #     ) %>%
+  #     dplyr::filter(!is.na(zone))
+  # })
+  # 
+  # trend_methods_present <- reactive({
+  #   df <- trend_df_park()
+  #   req(nrow(df) > 0)
+  #   sort(unique(df$method))
+  # })
+  # 
+  # method_to_trend_id <- function(method) {
+  #   paste0("trend_plot_", gsub("[^A-Za-z0-9]+", "_", method))
+  # }
+  # 
+  # output$trend_plots_ui <- renderUI({
+  #   df <- trend_df_park()
+  #   
+  #   validate(
+  #     need(nrow(df) > 0, "No trend data available for this Marine Park + Metric.")
+  #   )
+  #   
+  #   methods <- sort(unique(df$method))
+  #   n <- length(methods)
+  #   
+  #   # 1 method → full width, 2–3 methods → 2 per row
+  #   card_width <- if (n == 1) 1 else 1/2
+  #   
+  #   layout_column_wrap(
+  #     width = card_width,
+  #     !!!lapply(methods, function(m) {
+  #       id <- method_to_trend_id(m)
+  #       
+  #       card(
+  #         full_screen = TRUE,
+  #         card_header(paste("Method:", m)),
+  #         plotOutput(id, height = 420)
+  #       )
+  #     })
+  #   )
+  # })
+  # 
+  # 
+  # observe({
+  #   df <- trend_df_park()
+  #   req(nrow(df) > 0)
+  #   
+  #   methods <- trend_methods_present()
+  #   req(length(methods) > 0)
+  #   
+  #   for (m in methods) {
+  #     local({
+  #       method <- m
+  #       id <- method_to_trend_id(method)
+  #       
+  #       output[[id]] <- renderPlot({
+  #         d <- df %>% dplyr::filter(method == !!method)
+  #         req(nrow(d) > 0)
+  #         make_trend_plot(d, y_label = input$trend_metric, management_change_year = 2018)
+  #       })
+  #       
+  #       outputOptions(output, id, suspendWhenHidden = FALSE)
+  #     })
+  #   }
+  # })
+  # 
+  # trend_df_park_b20 <- reactive({
+  #   req(input$marine_park)
+  #   
+  #   all_data$trend_data %>%
+  #     dplyr::filter(marine_park == input$marine_park, metric == "B20") %>%
+  #     dplyr::mutate(
+  #       date = as.Date(date),
+  #       year = lubridate::year(date),
+  #       zone = factor(zone, levels = names(zone_cols)),
+  #       depth_class = factor(depth_class, levels = c("0-30 m", "30-70 m"))
+  #     ) %>%
+  #     dplyr::filter(!is.na(zone))
+  # })
   
-  trend_df_park <- reactive({
-    req(input$marine_park)
-    req(trend_metric_code())
-    
-    df <- all_data$trend_data  
-    
-    df %>%
-      dplyr::filter(
-        marine_park == input$marine_park,
-        metric == trend_metric_code()
-      ) %>%
-      dplyr::mutate(
-        date = as.Date(date),
-        year = lubridate::year(date),
-        zone = factor(zone, levels = names(zone_cols)),
-        depth_class = factor(depth_class, levels = c("0-30 m", "30-70 m"))
-      ) %>%
-      dplyr::filter(!is.na(zone))
-  })
+
+  # # -----------------------------
+  # # STATE & TREND (Tabbed: B20 / RFTI)
+  # # -----------------------------
+  # 
+  # # ---- Helpers: safe ids per method ----
+  # method_safe <- function(x) gsub("[^A-Za-z0-9]+", "_", x)
+  # 
+  # # Trend-line plot output ids
+  # method_to_trend_id <- function(metric, method) {
+  #   paste0("trend_", metric, "_", method_safe(method))
+  # }
+  # 
+  # # Block ids (year/map/plot) per metric+method
+  # year_id_for_method <- function(metric, m) paste0("year_", metric, "_", method_safe(m))
+  # map_id_for_method  <- function(metric, m) paste0("map_",  metric, "_", method_safe(m))
+  # plot_id_for_method <- function(metric, m) paste0("plot_", metric, "_", method_safe(m))
+  # 
+  # # ---- Plot makers (DO NOT reference input inside these) ----
+  # make_trend_plot <- function(df, y_label, management_change_year = 2018) {
+  #   ggplot(df, aes(x = year, y = mean, colour = zone, group = zone)) +
+  #     geom_vline(xintercept = management_change_year, linetype = "dashed", linewidth = 0.5) +
+  #     geom_line(linewidth = 0.8) +
+  #     geom_point(size = 2) +
+  #     geom_linerange(aes(ymin = mean - se, ymax = mean + se), linewidth = 0.5) +
+  #     facet_wrap(
+  #       ~ depth_class,
+  #       ncol = 1,
+  #       scales = "free_y",
+  #       labeller = labeller(depth_class = function(x) paste0("Depth: ", x))
+  #     ) +
+  #     scale_colour_manual(values = zone_cols, name = "Australian Marine Parks") +
+  #     scale_x_continuous(
+  #       breaks = c(2016, 2019, 2022),
+  #       expand = expansion(mult = c(0.03, 0.06))
+  #     ) +
+  #     labs(x = "Year", y = y_label) +
+  #     theme_classic(base_size = 11) +
+  #     theme(
+  #       legend.position = "top",
+  #       legend.direction = "horizontal",
+  #       strip.background = element_blank(),
+  #       strip.text = element_text(face = "italic"),
+  #       axis.title.y = element_text(margin = margin(r = 10))
+  #     )
+  # }
+  # 
+  # # B20 species facet plot:
+  # # bar height = abundance (value_a), error bars = SE (value_b)
+  # make_b20_species_plot <- function(df) {
+  #   ggplot(df, aes(x = reorder(taxa, value_a), y = value_a)) +
+  #     geom_col() +
+  #     geom_errorbar(aes(ymin = pmax(0, value_a - value_b), ymax = value_a + value_b),
+  #                   width = 0.2, linewidth = 0.4) +
+  #     coord_flip() +
+  #     facet_grid(depth_class ~ zone, scales = "free_y") +
+  #     scale_y_continuous(expand = expansion(mult = c(0, 0.12))) +
+  #     labs(x = NULL, y = "Abundance") +
+  #     theme_minimal(base_size = 11) +
+  #     theme(panel.grid.minor = element_blank(),
+  #           strip.text = element_text(face = "bold"))
+  # }
+  # 
+  # # RFTI species facet plot:
+  # # bar height = Log Abundance (value_b), label = Temp (value_a)
+  # make_rfti_species_plot <- function(df) {
+  #   ggplot(df, aes(x = reorder(taxa, value_b), y = value_b)) +
+  #     geom_col() +
+  #     coord_flip() +
+  #     geom_text(aes(label = sprintf("%.1f\u00B0C", value_a)),
+  #               hjust = -0.05, size = 3) +
+  #     facet_grid(depth_class ~ zone, scales = "free_y") +
+  #     scale_y_continuous(expand = expansion(mult = c(0, 0.15))) +
+  #     labs(x = NULL, y = "Log Abundance") +
+  #     theme_minimal(base_size = 11) +
+  #     theme(panel.grid.minor = element_blank(),
+  #           strip.text = element_text(face = "bold"))
+  # }
+  # 
+  # # -----------------------------
+  # # 1) Trend-line data (from all_data$trend_data) for both metrics
+  # # -----------------------------
+  # 
+  # trend_df_park_metric <- function(metric_code) {
+  #   reactive({
+  #     req(input$marine_park)
+  #     
+  #     all_data$trend_data %>%
+  #       dplyr::filter(marine_park == input$marine_park, metric == metric_code) %>%
+  #       dplyr::mutate(
+  #         date = as.Date(date),
+  #         year = lubridate::year(date),
+  #         zone = factor(zone, levels = names(zone_cols)),
+  #         depth_class = factor(depth_class, levels = c("0-30 m", "30-70 m"))
+  #       ) %>%
+  #       dplyr::filter(!is.na(zone))
+  #   })
+  # }
+  # 
+  # trend_df_b20  <- trend_df_park_metric("B20")
+  # trend_df_rfti <- trend_df_park_metric("RFTI")
+  # 
+  # trend_methods_present <- function(trend_df_reactive) {
+  #   reactive({
+  #     df <- trend_df_reactive()
+  #     req(nrow(df) > 0)
+  #     sort(unique(df$method))
+  #   })
+  # }
+  # 
+  # trend_methods_b20  <- trend_methods_present(trend_df_b20)
+  # trend_methods_rfti <- trend_methods_present(trend_df_rfti)
+  # 
+  # # -----------------------------
+  # # 2) Trend plots UI + renderers (B20 tab)
+  # # -----------------------------
+  # 
+  # output$trend_plots_b20_ui <- renderUI({
+  #   # req(input$trend_metric_tab == "B20")
+  #   
+  #   df <- trend_df_b20()
+  #   validate(need(nrow(df) > 0, "No B20 trend data available for this Marine Park."))
+  #   
+  #   methods <- trend_methods_b20()
+  #   n <- length(methods)
+  #   card_width <- if (n == 1) 1 else 1/2
+  #   
+  #   bslib::layout_column_wrap(
+  #     width = card_width,
+  #     !!!lapply(methods, function(m) {
+  #       id <- method_to_trend_id("B20", m)
+  #       bslib::card(
+  #         full_screen = TRUE,
+  #         bslib::card_header(paste("Method:", m)),
+  #         plotOutput(id, height = 420)
+  #       )
+  #     })
+  #   )
+  # })
+  # 
+  # observe({
+  #   # req(input$trend_metric_tab == "B20")
+  #   
+  #   df <- trend_df_b20()
+  #   req(nrow(df) > 0)
+  #   
+  #   methods <- trend_methods_b20()
+  #   req(length(methods) > 0)
+  #   
+  #   for (m in methods) {
+  #     local({
+  #       method <- m
+  #       id <- method_to_trend_id("B20", method)
+  #       
+  #       output[[id]] <- renderPlot({
+  #         d <- df %>% dplyr::filter(method == !!method)
+  #         validate(need(nrow(d) > 0, "No data for this method."))
+  #         make_trend_plot(d, y_label = "Large Reef Fish Index* (B20*)", management_change_year = 2018)
+  #       })
+  #       
+  #       # outputOptions(output, id, suspendWhenHidden = FALSE)
+  #     })
+  #   }
+  # })
+  # 
+  # # -----------------------------
+  # # 3) Trend plots UI + renderers (RFTI tab)
+  # # -----------------------------
+  # 
+  # output$trend_plots_rfti_ui <- renderUI({
+  #   # req(input$trend_metric_tab == "RFTI")
+  #   
+  #   df <- trend_df_rfti()
+  #   validate(need(nrow(df) > 0, "No RFTI trend data available for this Marine Park."))
+  #   
+  #   methods <- trend_methods_rfti()
+  #   n <- length(methods)
+  #   card_width <- if (n == 1) 1 else 1/2
+  #   
+  #   bslib::layout_column_wrap(
+  #     width = card_width,
+  #     !!!lapply(methods, function(m) {
+  #       id <- method_to_trend_id("RFTI", m)
+  #       bslib::card(
+  #         full_screen = TRUE,
+  #         bslib::card_header(paste("Method:", m)),
+  #         plotOutput(id, height = 420)
+  #       )
+  #     })
+  #   )
+  # })
+  # 
+  # observe({
+  #   # req(input$trend_metric_tab == "RFTI")
+  #   
+  #   df <- trend_df_rfti()
+  #   req(nrow(df) > 0)
+  #   
+  #   methods <- trend_methods_rfti()
+  #   req(length(methods) > 0)
+  #   
+  #   for (m in methods) {
+  #     local({
+  #       method <- m
+  #       id <- method_to_trend_id("RFTI", method)
+  #       
+  #       output[[id]] <- renderPlot({
+  #         d <- df %>% dplyr::filter(method == !!method)
+  #         validate(need(nrow(d) > 0, "No data for this method."))
+  #         make_trend_plot(d, y_label = "Reef Fish Thermal Index", management_change_year = 2018)
+  #       })
+  #       
+  #       # outputOptions(output, id, suspendWhenHidden = FALSE)
+  #     })
+  #   }
+  # })
+  # 
+  # # -----------------------------
+  # # 4) Species block data (from all_data$trend_data_fish) for both metrics
+  # # -----------------------------
+  # 
+  # fish_df_park_metric <- function(metric_code) {
+  #   reactive({
+  #     req(input$marine_park)
+  #     
+  #     all_data$trend_data_fish %>%
+  #       dplyr::filter(marine_park == input$marine_park, metric == metric_code) %>%
+  #       dplyr::mutate(
+  #         date = as.Date(date),
+  #         year = lubridate::year(date),
+  #         zone = as.factor(zone),
+  #         depth_class = as.factor(depth_class)
+  #       )
+  #   })
+  # }
+  # 
+  # fish_df_b20  <- fish_df_park_metric("B20")
+  # fish_df_rfti <- fish_df_park_metric("RFTI")
+  # 
+  # fish_methods_present <- function(fish_df_reactive) {
+  #   reactive({
+  #     df <- fish_df_reactive()
+  #     req(nrow(df) > 0)
+  #     sort(unique(df$method))
+  #   })
+  # }
+  # 
+  # fish_methods_b20  <- fish_methods_present(fish_df_b20)
+  # fish_methods_rfti <- fish_methods_present(fish_df_rfti)
+  # 
+  # # -----------------------------
+  # # 5) Blocks UI + renderers (B20 tab: year dropdown + map + abundance bars)
+  # # -----------------------------
+  # 
+  # output$b20_blocks_ui <- renderUI({
+  #   # req(input$trend_metric_tab == "B20")
+  #   
+  #   df <- fish_df_b20()
+  #   validate(need(nrow(df) > 0, "No B20 species data available for this Marine Park."))
+  #   
+  #   methods <- fish_methods_b20()
+  #   req(length(methods) > 0)
+  #   
+  #   card_width <- if (length(methods) == 1) 1 else 1/2
+  #   
+  #   bslib::layout_column_wrap(
+  #     width = card_width,
+  #     !!!lapply(methods, function(m) {
+  #       yrs <- sort(unique(df$year[df$method == m]))
+  #       req(length(yrs) > 0)
+  #       
+  #       bslib::card(
+  #         full_screen = TRUE,
+  #         bslib::card_header(paste("Method:", m)),
+  #         
+  #         tags$div(
+  #           tags$strong("Choose year:"),
+  #           selectInput(
+  #             inputId = year_id_for_method("B20", m),
+  #             label = NULL,
+  #             choices = yrs,
+  #             selected = max(yrs),
+  #             width = "100%"
+  #           )
+  #         ),
+  #         
+  #         leafletOutput(map_id_for_method("B20", m), height = 320),
+  #         plotOutput(plot_id_for_method("B20", m), height = 380)
+  #       )
+  #     })
+  #   )
+  # })
+  # 
+  # observe({
+  #   # req(input$trend_metric_tab == "B20")
+  #   
+  #   df_all <- fish_df_b20()
+  #   req(nrow(df_all) > 0)
+  #   
+  #   methods <- fish_methods_b20()
+  #   req(length(methods) > 0)
+  #   
+  #   for (m in methods) {
+  #     local({
+  #       method <- m
+  #       year_input_id <- year_id_for_method("B20", method)
+  #       map_id <- map_id_for_method("B20", method)
+  #       plot_id <- plot_id_for_method("B20", method)
+  #       
+  #       output[[plot_id]] <- renderPlot({
+  #         req(input[[year_input_id]])
+  #         d <- df_all %>% dplyr::filter(method == !!method, year == as.integer(input[[year_input_id]]))
+  #         validate(need(nrow(d) > 0, "No B20 species data for this method/year."))
+  #         make_b20_species_plot(d)
+  #       })
+  #       # outputOptions(output, plot_id, suspendWhenHidden = FALSE)
+  #       
+  #       output[[map_id]] <- renderLeaflet({
+  #         base_map() %>%
+  #           addProviderTiles("Esri.WorldImagery", group = "World Imagery") %>%
+  #           addTiles(group = "Open Street Map")
+  #       })
+  #       # outputOptions(output, map_id, suspendWhenHidden = FALSE)
+  #       
+  #       # observeEvent(input[[year_input_id]], {
+  #       #   # Hook for your B20 map layer update
+  #       #   # d <- df_all %>% filter(method == method, year == as.integer(input[[year_input_id]]))
+  #       #   # leafletProxy(map_id) %>% ...
+  #       # }, ignoreInit = TRUE)
+  #       
+  #       observeEvent(
+  #         list(input$marine_park, input[[year_input_id]]),
+  #         {
+  #           yr_raw <- input[[year_input_id]]
+  #           req(!is.null(yr_raw), length(yr_raw) == 1, nzchar(as.character(yr_raw)))
+  #           yr <- as.integer(yr_raw)
+  #           
+  #           update_tiles_on_map(
+  #             map_id = map_id,
+  #             marine_park = input$marine_park,
+  #             method = method,
+  #             metric = "B20",
+  #             year = yr,
+  #             metric_title = "B20"
+  #           )
+  #         },
+  #         ignoreInit = FALSE
+  #       )
+  #       
+  #     })
+  #   }
+  # })
+  # 
+  # # -----------------------------
+  # # 6) Blocks UI + renderers (RFTI tab: year dropdown + map + log abundance bars + temp labels)
+  # # -----------------------------
+  # 
+  # output$rfti_blocks_ui <- renderUI({
+  #   # req(input$trend_metric_tab == "RFTI")
+  #   
+  #   df <- fish_df_rfti()
+  #   validate(need(nrow(df) > 0, "No RFTI species data available for this Marine Park."))
+  #   
+  #   methods <- fish_methods_rfti()
+  #   req(length(methods) > 0)
+  #   
+  #   card_width <- if (length(methods) == 1) 1 else 1/2
+  #   
+  #   bslib::layout_column_wrap(
+  #     width = card_width,
+  #     !!!lapply(methods, function(m) {
+  #       yrs <- sort(unique(df$year[df$method == m]))
+  #       req(length(yrs) > 0)
+  #       
+  #       bslib::card(
+  #         full_screen = TRUE,
+  #         bslib::card_header(paste("Method:", m)),
+  #         
+  #         tags$div(
+  #           tags$strong("Choose year:"),
+  #           selectInput(
+  #             inputId = year_id_for_method("RFTI", m),
+  #             label = NULL,
+  #             choices = yrs,
+  #             selected = max(yrs),
+  #             width = "100%"
+  #           )
+  #         ),
+  #         
+  #         leafletOutput(map_id_for_method("RFTI", m), height = 320),
+  #         plotOutput(plot_id_for_method("RFTI", m), height = 380)
+  #       )
+  #     })
+  #   )
+  # })
+  # 
+  # observe({
+  #   # req(input$trend_metric_tab == "RFTI")
+  #   
+  #   df_all <- fish_df_rfti()
+  #   req(nrow(df_all) > 0)
+  #   
+  #   methods <- fish_methods_rfti()
+  #   req(length(methods) > 0)
+  #   
+  #   for (m in methods) {
+  #     local({
+  #       method <- m
+  #       year_input_id <- year_id_for_method("RFTI", method)
+  #       map_id <- map_id_for_method("RFTI", method)
+  #       plot_id <- plot_id_for_method("RFTI", method)
+  #       
+  #       output[[plot_id]] <- renderPlot({
+  #         req(input[[year_input_id]])
+  #         d <- df_all %>% dplyr::filter(method == !!method, year == as.integer(input[[year_input_id]]))
+  #         validate(need(nrow(d) > 0, "No RFTI species data for this method/year."))
+  #         make_rfti_species_plot(d)
+  #       })
+  #       # outputOptions(output, plot_id, suspendWhenHidden = FALSE)
+  #       
+  #       output[[map_id]] <- renderLeaflet({
+  #         base_map() %>%
+  #           addProviderTiles("Esri.WorldImagery", group = "World Imagery") %>%
+  #           addTiles(group = "Open Street Map")
+  #       })
+  #       # outputOptions(output, map_id, suspendWhenHidden = FALSE)
+  #       
+  #       # observeEvent(input[[year_input_id]], {
+  #       #   # Hook for your RFTI map layer update
+  #       #   # d <- df_all %>% filter(method == method, year == as.integer(input[[year_input_id]]))
+  #       #   # leafletProxy(map_id) %>% ...
+  #       # }, ignoreInit = TRUE)
+  #       
+  #       observeEvent(
+  #         list(input$marine_park, input[[year_input_id]]),
+  #         {
+  #           yr_raw <- input[[year_input_id]]
+  #           req(!is.null(yr_raw), length(yr_raw) == 1, nzchar(as.character(yr_raw)))
+  #           yr <- as.integer(yr_raw)
+  #           
+  #           update_tiles_on_map(
+  #             map_id = map_id,
+  #             marine_park = input$marine_park,
+  #             method = method,
+  #             metric = "RFTI",
+  #             year = yr,
+  #             metric_title = "RFTI"
+  #           )
+  #         },
+  #         ignoreInit = FALSE
+  #       )
+  #       
+  #       
+  #     })
+  #   }
+  # })
+  # 
+  # 
+  # 
+  # # First get rasters 
+  # get_tiles_for <- function(marine_park, method, metric, year = NULL) {
+  #   
+  #   df <- all_data$raster_tags %>%
+  #     dplyr::filter(
+  #       marine_park == !!marine_park,
+  #       method == !!method,
+  #       metric == !!metric
+  #     )
+  #   
+  #   # only filter by year if provided and length 1
+  #   if (!is.null(year) && length(year) == 1 && !is.na(year)) {
+  #     df <- df %>% dplyr::filter(year == !!year)
+  #   }
+  #   
+  #   df
+  # }
+  # 
+  # update_tiles_on_map <- function(map_id, marine_park, method, metric, year = NULL, metric_title = NULL) {
+  #   
+  #   tiles <- get_tiles_for(marine_park, method, metric, year)
+  #   
+  #   message("tiles n = ", nrow(tiles))
+  #   if (nrow(tiles) > 0) message("estimates: ", paste(unique(tiles$estimate), collapse = ", "))
+  #   if (nrow(tiles) > 0) message("url: ", unique(tiles$tile_service_url)[1])
+  #   
+  #   proxy <- leaflet::leafletProxy(map_id) %>%
+  #     leaflet::clearGroup("Probability") %>%
+  #     leaflet::clearGroup("Error") %>%
+  #     leaflet::removeControl(layerId = "prob_leg") %>%
+  #     leaflet::removeControl(layerId = "err_leg")
+  #   
+  #   if (is.null(tiles) || nrow(tiles) == 0) return(invisible(NULL))
+  #   
+  #   # --- Probability ---
+  #   prob <- tiles %>% dplyr::filter(tolower(estimate) == "probability")
+  #   if (nrow(prob) > 0) {
+  #     url <- unique(prob$tile_service_url)[1]
+  #     
+  #     proxy <- proxy %>%
+  #       leaflet::addTiles(
+  #         urlTemplate = url,
+  #         attribution = "© GlobalArchive",
+  #         group = "Probability"
+  #       ) %>%
+  #       leaflet::showGroup("Probability")
+  #   }
+  #   
+  #   # --- Error ---
+  #   err <- tiles %>% dplyr::filter(tolower(estimate) == "error")
+  #   if (nrow(err) > 0) {
+  #     url <- unique(err$tile_service_url)[1]
+  #     
+  #     proxy <- proxy %>%
+  #       leaflet::addTiles(
+  #         urlTemplate = url,
+  #         attribution = "© GlobalArchive",
+  #         group = "Error"
+  #       ) %>%
+  #       leaflet::hideGroup("Error")
+  #   }
+  #   
+  #   invisible(NULL)
+  # }
   
-  trend_methods_present <- reactive({
-    df <- trend_df_park()
-    req(nrow(df) > 0)
-    sort(unique(df$method))
-  })
   
-  method_to_trend_id <- function(method) {
-    paste0("trend_plot_", gsub("[^A-Za-z0-9]+", "_", method))
+  # -----------------------------
+  # STATE & TREND (Tabbed: B20 / RFTI)  ✅ drop-in replacement chunk
+  # -----------------------------
+  
+  # ---- Helpers: safe ids per method ----
+  method_safe <- function(x) gsub("[^A-Za-z0-9]+", "_", x)
+  
+  # Trend-line plot output ids
+  method_to_trend_id <- function(metric, method) {
+    paste0("trend_", metric, "_", method_safe(method))
   }
   
-  output$trend_plots_ui <- renderUI({
-    df <- trend_df_park()
+  # Block ids (year/map/plot) per metric+method
+  year_id_for_method <- function(metric, m) paste0("year_", metric, "_", method_safe(m))
+  map_id_for_method  <- function(metric, m) paste0("map_",  metric, "_", method_safe(m))
+  plot_id_for_method <- function(metric, m) paste0("plot_", metric, "_", method_safe(m))
+  
+  # ---- Plot makers (DO NOT reference input inside these) ----
+  make_trend_plot <- function(df, y_label, management_change_year = 2018) {
+    ggplot(df, aes(x = year, y = mean, colour = zone, group = zone)) +
+      geom_vline(xintercept = management_change_year, linetype = "dashed", linewidth = 0.5) +
+      geom_line(linewidth = 0.8) +
+      geom_point(size = 2) +
+      geom_linerange(aes(ymin = mean - se, ymax = mean + se), linewidth = 0.5) +
+      facet_wrap(
+        ~ depth_class,
+        ncol = 1,
+        scales = "free_y",
+        labeller = labeller(depth_class = function(x) paste0("Depth: ", x))
+      ) +
+      scale_colour_manual(values = zone_cols, name = "Australian Marine Parks") +
+      scale_x_continuous(
+        breaks = c(2016, 2019, 2022),
+        expand = expansion(mult = c(0.03, 0.06))
+      ) +
+      labs(x = "Year", y = y_label) +
+      theme_classic(base_size = 11) +
+      theme(
+        legend.position = "top",
+        legend.direction = "horizontal",
+        strip.background = element_blank(),
+        strip.text = element_text(face = "italic"),
+        axis.title.y = element_text(margin = margin(r = 10))
+      )
+  }
+  
+  # B20 species facet plot:
+  # bar height = abundance (value_a), error bars = SE (value_b)
+  make_b20_species_plot <- function(df) {
+    ggplot(df, aes(x = reorder(taxa, value_a), y = value_a)) +
+      geom_col() +
+      geom_errorbar(
+        aes(ymin = pmax(0, value_a - value_b), ymax = value_a + value_b),
+        width = 0.2, linewidth = 0.4
+      ) +
+      coord_flip() +
+      facet_grid(depth_class ~ zone, scales = "free_y") +
+      scale_y_continuous(expand = expansion(mult = c(0, 0.12))) +
+      labs(x = NULL, y = "Abundance") +
+      theme_minimal(base_size = 11) +
+      theme(panel.grid.minor = element_blank(),
+            strip.text = element_text(face = "bold"))
+  }
+  
+  # RFTI species facet plot:
+  # bar height = Log Abundance (value_b), label = Temp (value_a)
+  make_rfti_species_plot <- function(df) {
+    ggplot(df, aes(x = reorder(taxa, value_b), y = value_b)) +
+      geom_col() +
+      coord_flip() +
+      geom_text(aes(label = sprintf("%.1f\u00B0C", value_a)),
+                hjust = -0.05, size = 3) +
+      facet_grid(depth_class ~ zone, scales = "free_y") +
+      scale_y_continuous(expand = expansion(mult = c(0, 0.15))) +
+      labs(x = NULL, y = "Log Abundance") +
+      theme_minimal(base_size = 11) +
+      theme(panel.grid.minor = element_blank(),
+            strip.text = element_text(face = "bold"))
+  }
+  
+  # -----------------------------
+  # 1) Trend-line data (from all_data$trend_data) for both metrics
+  # -----------------------------
+  
+  trend_df_park_metric <- function(metric_code) {
+    reactive({
+      req(input$marine_park)
+      
+      all_data$trend_data %>%
+        dplyr::filter(marine_park == input$marine_park, metric == metric_code) %>%
+        dplyr::mutate(
+          date = as.Date(date),
+          year = lubridate::year(date),
+          zone = factor(zone, levels = names(zone_cols)),
+          depth_class = factor(depth_class, levels = c("0-30 m", "30-70 m"))
+        ) %>%
+        dplyr::filter(!is.na(zone))
+    })
+  }
+  
+  trend_df_b20  <- trend_df_park_metric("B20")
+  trend_df_rfti <- trend_df_park_metric("RFTI")
+  
+  trend_methods_present <- function(trend_df_reactive) {
+    reactive({
+      df <- trend_df_reactive()
+      req(nrow(df) > 0)
+      sort(unique(df$method))
+    })
+  }
+  
+  trend_methods_b20  <- trend_methods_present(trend_df_b20)
+  trend_methods_rfti <- trend_methods_present(trend_df_rfti)
+  
+  # -----------------------------
+  # 2) Trend plots UI + renderers (B20 tab)
+  # -----------------------------
+  
+  output$trend_plots_b20_ui <- renderUI({
+    df <- trend_df_b20()
+    validate(need(nrow(df) > 0, "No B20 trend data available for this Marine Park."))
     
-    validate(
-      need(nrow(df) > 0, "No trend data available for this Marine Park + Metric.")
-    )
+    methods <- trend_methods_b20()
+    card_width <- if (length(methods) == 1) 1 else 1/2
     
-    methods <- sort(unique(df$method))
-    n <- length(methods)
-    
-    # 1 method → full width, 2–3 methods → 2 per row
-    card_width <- if (n == 1) 1 else 1/2
-    
-    layout_column_wrap(
+    bslib::layout_column_wrap(
       width = card_width,
       !!!lapply(methods, function(m) {
-        id <- method_to_trend_id(m)
-        
-        card(
+        id <- method_to_trend_id("B20", m)
+        bslib::card(
           full_screen = TRUE,
-          card_header(paste("Method:", m)),
+          bslib::card_header(paste("Method:", m)),
           plotOutput(id, height = 420)
         )
       })
     )
   })
   
-  
   observe({
-    df <- trend_df_park()
+    df <- trend_df_b20()
     req(nrow(df) > 0)
     
-    methods <- trend_methods_present()
+    methods <- trend_methods_b20()
     req(length(methods) > 0)
     
     for (m in methods) {
       local({
         method <- m
-        id <- method_to_trend_id(method)
+        id <- method_to_trend_id("B20", method)
         
         output[[id]] <- renderPlot({
           d <- df %>% dplyr::filter(method == !!method)
-          req(nrow(d) > 0)
-          make_trend_plot(d, y_label = input$trend_metric, management_change_year = 2018)
+          validate(need(nrow(d) > 0, "No data for this method."))
+          make_trend_plot(d, y_label = "Large Reef Fish Index* (B20*)", management_change_year = 2018)
         })
-        
-        outputOptions(output, id, suspendWhenHidden = FALSE)
       })
     }
   })
+  
+  # -----------------------------
+  # 3) Trend plots UI + renderers (RFTI tab)
+  # -----------------------------
+  
+  output$trend_plots_rfti_ui <- renderUI({
+    df <- trend_df_rfti()
+    validate(need(nrow(df) > 0, "No RFTI trend data available for this Marine Park."))
+    
+    methods <- trend_methods_rfti()
+    card_width <- if (length(methods) == 1) 1 else 1/2
+    
+    bslib::layout_column_wrap(
+      width = card_width,
+      !!!lapply(methods, function(m) {
+        id <- method_to_trend_id("RFTI", m)
+        bslib::card(
+          full_screen = TRUE,
+          bslib::card_header(paste("Method:", m)),
+          plotOutput(id, height = 420)
+        )
+      })
+    )
+  })
+  
+  observe({
+    df <- trend_df_rfti()
+    req(nrow(df) > 0)
+    
+    methods <- trend_methods_rfti()
+    req(length(methods) > 0)
+    
+    for (m in methods) {
+      local({
+        method <- m
+        id <- method_to_trend_id("RFTI", method)
+        
+        output[[id]] <- renderPlot({
+          d <- df %>% dplyr::filter(method == !!method)
+          validate(need(nrow(d) > 0, "No data for this method."))
+          make_trend_plot(d, y_label = "Reef Fish Thermal Index", management_change_year = 2018)
+        })
+      })
+    }
+  })
+  
+  # -----------------------------
+  # 4) Species block data (from all_data$trend_data_fish) for both metrics
+  # -----------------------------
+  
+  fish_df_park_metric <- function(metric_code) {
+    reactive({
+      req(input$marine_park)
+      
+      all_data$trend_data_fish %>%
+        dplyr::filter(marine_park == input$marine_park, metric == metric_code) %>%
+        dplyr::mutate(
+          date = as.Date(date),
+          year = lubridate::year(date),
+          zone = as.factor(zone),
+          depth_class = as.factor(depth_class)
+        )
+    })
+  }
+  
+  fish_df_b20  <- fish_df_park_metric("B20")
+  fish_df_rfti <- fish_df_park_metric("RFTI")
+  
+  fish_methods_present <- function(fish_df_reactive) {
+    reactive({
+      df <- fish_df_reactive()
+      req(nrow(df) > 0)
+      sort(unique(df$method))
+    })
+  }
+  
+  fish_methods_b20  <- fish_methods_present(fish_df_b20)
+  fish_methods_rfti <- fish_methods_present(fish_df_rfti)
+  
+  # -----------------------------
+  # 5) Blocks UI + renderers (B20 tab: year dropdown + map + abundance bars)
+  # -----------------------------
+  
+  output$b20_blocks_ui <- renderUI({
+    df <- fish_df_b20()
+    validate(need(nrow(df) > 0, "No B20 species data available for this Marine Park."))
+    
+    methods <- fish_methods_b20()
+    req(length(methods) > 0)
+    
+    card_width <- if (length(methods) == 1) 1 else 1/2
+    
+    bslib::layout_column_wrap(
+      width = card_width,
+      !!!lapply(methods, function(m) {
+        yrs <- sort(unique(df$year[df$method == m]))
+        req(length(yrs) > 0)
+        
+        bslib::card(
+          full_screen = TRUE,
+          bslib::card_header(paste("Method:", m)),
+          tags$div(
+            tags$strong("Choose year:"),
+            selectInput(
+              inputId = year_id_for_method("B20", m),
+              label = NULL,
+              choices = yrs,
+              selected = max(yrs),
+              width = "100%"
+            )
+          ),
+          leafletOutput(map_id_for_method("B20", m), height = 320),
+          plotOutput(plot_id_for_method("B20", m), height = 380)
+        )
+      })
+    )
+  })
+  
+  observe({
+    df_all <- fish_df_b20()
+    req(nrow(df_all) > 0)
+    
+    methods <- fish_methods_b20()
+    req(length(methods) > 0)
+    
+    for (m in methods) {
+      local({
+        method <- m
+        year_input_id <- year_id_for_method("B20", method)
+        map_id <- map_id_for_method("B20", method)
+        plot_id <- plot_id_for_method("B20", method)
+        
+        output[[plot_id]] <- renderPlot({
+          yr_raw <- input[[year_input_id]]
+          req(!is.null(yr_raw), length(yr_raw) == 1, nzchar(as.character(yr_raw)))
+          yr <- as.integer(yr_raw)
+          
+          d <- df_all %>% dplyr::filter(method == !!method, year == !!yr)
+          validate(need(nrow(d) > 0, "No B20 species data for this method/year."))
+          make_b20_species_plot(d)
+        })
+        
+        output[[map_id]] <- renderLeaflet({
+          base_map() %>%
+            addProviderTiles("Esri.WorldImagery", group = "World Imagery") %>%
+            addTiles(group = "Open Street Map")
+        })
+        
+        observeEvent(
+          list(input$marine_park, input[[year_input_id]]),
+          {
+            yr_raw <- input[[year_input_id]]
+            req(!is.null(yr_raw), length(yr_raw) == 1, nzchar(as.character(yr_raw)))
+            yr <- as.integer(yr_raw)
+            
+            update_tiles_on_map(
+              map_id = map_id,
+              marine_park = input$marine_park,
+              method = method,
+              metric = "B20",
+              year = yr,
+              metric_title = "B20"
+            )
+          },
+          ignoreInit = FALSE
+        )
+      })
+    }
+  })
+  
+  # -----------------------------
+  # 6) Blocks UI + renderers (RFTI tab: year dropdown + map + log abundance bars + temp labels)
+  # -----------------------------
+  
+  output$rfti_blocks_ui <- renderUI({
+    df <- fish_df_rfti()
+    validate(need(nrow(df) > 0, "No RFTI species data available for this Marine Park."))
+    
+    methods <- fish_methods_rfti()
+    req(length(methods) > 0)
+    
+    card_width <- if (length(methods) == 1) 1 else 1/2
+    
+    bslib::layout_column_wrap(
+      width = card_width,
+      !!!lapply(methods, function(m) {
+        yrs <- sort(unique(df$year[df$method == m]))
+        req(length(yrs) > 0)
+        
+        bslib::card(
+          full_screen = TRUE,
+          bslib::card_header(paste("Method:", m)),
+          tags$div(
+            tags$strong("Choose year:"),
+            selectInput(
+              inputId = year_id_for_method("RFTI", m),
+              label = NULL,
+              choices = yrs,
+              selected = max(yrs),
+              width = "100%"
+            )
+          ),
+          leafletOutput(map_id_for_method("RFTI", m), height = 320),
+          plotOutput(plot_id_for_method("RFTI", m), height = 380)
+        )
+      })
+    )
+  })
+  
+  observe({
+    df_all <- fish_df_rfti()
+    req(nrow(df_all) > 0)
+    
+    methods <- fish_methods_rfti()
+    req(length(methods) > 0)
+    
+    for (m in methods) {
+      local({
+        method <- m
+        year_input_id <- year_id_for_method("RFTI", method)
+        map_id <- map_id_for_method("RFTI", method)
+        plot_id <- plot_id_for_method("RFTI", method)
+        
+        output[[plot_id]] <- renderPlot({
+          yr_raw <- input[[year_input_id]]
+          req(!is.null(yr_raw), length(yr_raw) == 1, nzchar(as.character(yr_raw)))
+          yr <- as.integer(yr_raw)
+          
+          d <- df_all %>% dplyr::filter(method == !!method, year == !!yr)
+          validate(need(nrow(d) > 0, "No RFTI species data for this method/year."))
+          make_rfti_species_plot(d)
+        })
+        
+        output[[map_id]] <- renderLeaflet({
+          base_map() %>%
+            addProviderTiles("Esri.WorldImagery", group = "World Imagery") %>%
+            addTiles(group = "Open Street Map")
+        })
+        
+        observeEvent(
+          list(input$marine_park, input[[year_input_id]]),
+          {
+            yr_raw <- input[[year_input_id]]
+            req(!is.null(yr_raw), length(yr_raw) == 1, nzchar(as.character(yr_raw)))
+            yr <- as.integer(yr_raw)
+            
+            update_tiles_on_map(
+              map_id = map_id,
+              marine_park = input$marine_park,
+              method = method,
+              metric = "RFTI",
+              year = yr,
+              metric_title = "RFTI"
+            )
+          },
+          ignoreInit = FALSE
+        )
+      })
+    }
+  })
+  
+  # -----------------------------
+  # 7) Raster tiles: lookup + update (Probability/Error)
+  # -----------------------------
+  
+  get_tiles_for <- function(marine_park, method, metric, year = NULL) {
+    df <- all_data$raster_tags %>%
+      dplyr::filter(
+        marine_park == !!marine_park,
+        method == !!method,
+        metric == !!metric
+      )
+    
+    if (!is.null(year) && length(year) == 1 && !is.na(year)) {
+      df <- df %>% dplyr::filter(year == !!year)
+    }
+    
+    df
+  }
+  
+  update_tiles_on_map <- function(map_id, marine_park, method, metric, year = NULL, metric_title = NULL) {
+    
+    tiles <- get_tiles_for(marine_park, method, metric, year)
+    
+    message("CALL update_tiles_on_map -> map_id=", map_id,
+            " park=", marine_park,
+            " method=", method,
+            " metric=", metric,
+            " year=", year)
+    
+    message("tiles n = ", nrow(tiles))
+    if (nrow(tiles) > 0) message("estimates: ", paste(unique(tiles$estimate), collapse = ", "))
+    if (nrow(tiles) > 0) message("url: ", unique(tiles$tile_service_url)[1])
+    
+    proxy <- leaflet::leafletProxy(map_id, session = session) %>%
+      leaflet::clearGroup("Probability") %>%
+      leaflet::clearGroup("Error") %>%
+      leaflet::removeControl(layerId = "tile_url_debug")
+    
+    if (is.null(tiles) || nrow(tiles) == 0) return(invisible(NULL))
+    
+    # --- Probability ---
+    prob <- tiles %>% dplyr::filter(tolower(estimate) == "probability")
+    if (nrow(prob) > 0) {
+      url <- unique(prob$tile_service_url)[1]
+      
+      proxy <- proxy %>%
+        leaflet::addTiles(
+          urlTemplate = url,
+          attribution = "© GlobalArchive",
+          group = "Probability"
+        ) %>%
+        leaflet::showGroup("Probability") %>%
+        leaflet::addControl(
+          html = htmltools::HTML(paste0(
+            "<div style='background:white; padding:6px 8px; border:1px solid #999; font-size:12px;'>",
+            "<b>Tile URL</b><br/>",
+            htmltools::htmlEscape(url),
+            "</div>"
+          )),
+          position = "bottomleft",
+          layerId = "tile_url_debug"
+        )
+    }
+    
+    # --- Error ---
+    err <- tiles %>% dplyr::filter(tolower(estimate) == "error")
+    if (nrow(err) > 0) {
+      url <- unique(err$tile_service_url)[1]
+      
+      proxy <- proxy %>%
+        leaflet::addTiles(
+          urlTemplate = url,
+          attribution = "© GlobalArchive",
+          group = "Error"
+        ) %>%
+        leaflet::hideGroup("Error")  # hidden by default
+    }
+    
+    invisible(NULL)
+  }
   
   
   # End of server ----
