@@ -1380,6 +1380,26 @@ server <- function(input, output, session) {
     paste0("trend_", metric, "_", method_safe(method))
   }
   
+  # ---- helper: scale point radius by abundance ----
+  radius_from_abundance <- function(x,
+                                    min_radius = 4,
+                                    max_radius = 14,
+                                    clamp_quantile = 0.95) {
+    
+    x <- suppressWarnings(as.numeric(x))
+    x[!is.finite(x)] <- NA_real_
+    
+    # avoid single crazy outliers
+    cap <- stats::quantile(x, clamp_quantile, na.rm = TRUE)
+    x <- pmin(x, cap)
+    
+    scales::rescale(
+      x,
+      to = c(min_radius, max_radius),
+      from = range(x, na.rm = TRUE)
+    )
+  }
+  
   # Block ids (year/map/plot) per metric+method
   year_id_for_method <- function(metric, m) paste0("year_", metric, "_", method_safe(m))
   map_id_for_method  <- function(metric, m) paste0("map_",  metric, "_", method_safe(m))
@@ -1867,6 +1887,597 @@ server <- function(input, output, session) {
     
     invisible(NULL)
   }
+  
+  # # =========================
+  # # DUMMY ADD-ONS FOR:
+  # #  - Species Richness maps (richness_maps_ui)
+  # #  - Species abundance dummy map (species_abundance_map)
+  # #  - Length histogram (length_hist)
+  # # =========================
+  # 
+  # # --- helper: safe output id per metric+method (doesn't collide with your existing method_to_id) ---
+  # metric_method_to_id <- function(metric, method) {
+  #   paste0(metric, "_", gsub("[^A-Za-z0-9]+", "_", method))
+  # }
+  # 
+  # # -------------------------
+  # # 1) SPECIES RICHNESS MAPS (dummy, same layout pattern as Total abundance)
+  # # -------------------------
+  # 
+  # species_richness_points <- reactive({
+  #   req(input$marine_park)
+  #   
+  #   df <- all_data$metric_bubble_data %>%
+  #     dplyr::filter(marine_park %in% input$marine_park)
+  #   
+  #   # Try common richness metric names; otherwise fall back to total_abundance
+  #   metric_candidates <- c("species_richness", "richness", "sr", "Species Richness", "S")
+  #   metric_use <- NULL
+  #   
+  #   if ("metric" %in% names(df)) {
+  #     metric_use <- metric_candidates[metric_candidates %in% unique(df$metric)][1]
+  #     if (is.na(metric_use) || is.null(metric_use)) metric_use <- NULL
+  #   }
+  #   
+  #   if (is.null(metric_use)) {
+  #     # fallback so dummy always draws
+  #     metric_use <- "total_abundance"
+  #   }
+  #   
+  #   df %>%
+  #     dplyr::filter(metric %in% metric_use) %>%
+  #     dplyr::rename(latitude = latitude_dd, longitude = longitude_dd) %>%
+  #     # dummy method so you get at least one map
+  #     dplyr::mutate(method = "stereo-BRUV") %>%
+  #     dplyr::filter(!is.na(longitude), !is.na(latitude))
+  # })
+  # 
+  # methods_present_richness <- reactive({
+  #   pts <- species_richness_points()
+  #   req(nrow(pts) > 0)
+  #   
+  #   m <- sort(unique(as.character(pts$method)))
+  #   m <- m[m %in% names(method_cols)]
+  #   if (length(m) == 0) m <- "stereo-BRUV"
+  #   m
+  # })
+  # 
+  # output$richness_maps_ui <- renderUI({
+  #   methods <- methods_present_richness()
+  #   req(length(methods) > 0)
+  #   
+  #   n <- length(methods)
+  #   cw <- dplyr::case_when(n == 1 ~ 12, n == 2 ~ 6, TRUE ~ 4)
+  #   
+  #   bslib::layout_columns(
+  #     col_widths = rep(cw, n),
+  #     !!!lapply(methods, function(m) {
+  #       div(
+  #         style = "padding: 0.5rem;",
+  #         h4(m, style = "margin: 0 0 0.5rem 0;"),
+  #         leafletOutput(metric_method_to_id("richness", m), height = "68vh")
+  #       )
+  #     })
+  #   )
+  # })
+  # 
+  # # render richness maps when tab is active
+  # observeEvent(
+  #   list(input$obs_tabs, input$marine_park, methods_present_richness()),
+  #   {
+  #     if (!identical(input$obs_tabs, "Species Richness")) return()
+  #     req(input$marine_park)
+  #     
+  #     pts <- species_richness_points()
+  #     req(nrow(pts) > 0)
+  #     
+  #     lng1 <- min(pts$longitude, na.rm = TRUE)
+  #     lat1 <- min(pts$latitude,  na.rm = TRUE)
+  #     lng2 <- max(pts$longitude, na.rm = TRUE)
+  #     lat2 <- max(pts$latitude,  na.rm = TRUE)
+  #     req(is.finite(lng1), is.finite(lat1), is.finite(lng2), is.finite(lat2))
+  #     
+  #     methods <- methods_present_richness()
+  #     
+  #     for (m in methods) {
+  #       id <- metric_method_to_id("richness", m)
+  #       
+  #       output[[id]] <- renderLeaflet({
+  #         base_map() %>%
+  #           addProviderTiles("Esri.WorldImagery", group = "World Imagery") %>%
+  #           addTiles(group = "Open Street Map") %>%
+  #           fitBounds(lng1, lat1, lng2, lat2) %>%
+  #           clearGroup("Sampling locations") %>%
+  #           addCircleMarkers(
+  #             data = pts,
+  #             lng = ~longitude, lat = ~latitude,
+  #             radius = 6, stroke = TRUE, weight = 1,
+  #             fillOpacity = 0.9, color = "white",
+  #             group = "Sampling locations",
+  #             options = pathOptions(pane = "points")
+  #           )
+  #       })
+  #     }
+  #   },
+  #   ignoreInit = TRUE
+  # )
+  # 
+  # # -------------------------
+  # # 2) SPECIES ABUNDANCE TAB: DUMMY MAP (uses your existing map_points())
+  # # -------------------------
+  # 
+  # species_abundance_map_points <- reactive({
+  #   pts <- map_points()     # your existing reactive in server
+  #   req(nrow(pts) > 0)
+  #   pts
+  # })
+  # 
+  # output$species_abundance_map <- renderLeaflet({
+  #   pts <- species_abundance_map_points()
+  #   req(nrow(pts) > 0)
+  #   
+  #   lng1 <- min(pts$longitude, na.rm = TRUE)
+  #   lat1 <- min(pts$latitude,  na.rm = TRUE)
+  #   lng2 <- max(pts$longitude, na.rm = TRUE)
+  #   lat2 <- max(pts$latitude,  na.rm = TRUE)
+  #   req(is.finite(lng1), is.finite(lat1), is.finite(lng2), is.finite(lat2))
+  #   
+  #   base_map() %>%
+  #     addProviderTiles("Esri.WorldImagery", group = "World Imagery") %>%
+  #     addTiles(group = "Open Street Map") %>%
+  #     fitBounds(lng1, lat1, lng2, lat2)
+  # })
+  # 
+  # observeEvent(species_abundance_map_points(), {
+  #   pts <- species_abundance_map_points()
+  #   req(nrow(pts) > 0)
+  #   
+  #   lng1 <- min(pts$longitude, na.rm = TRUE)
+  #   lat1 <- min(pts$latitude,  na.rm = TRUE)
+  #   lng2 <- max(pts$longitude, na.rm = TRUE)
+  #   lat2 <- max(pts$latitude,  na.rm = TRUE)
+  #   req(is.finite(lng1), is.finite(lat1), is.finite(lng2), is.finite(lat2))
+  #   
+  #   # if method_cols doesn't include "Other", keep it safe
+  #   pts <- pts %>% dplyr::mutate(method = ifelse(method %in% names(method_cols), method, names(method_cols)[1]))
+  #   
+  #   leafletProxy("species_abundance_map", data = pts) %>%
+  #     clearGroup("Sampling locations") %>%
+  #     addCircleMarkers(
+  #       lng = ~longitude, lat = ~latitude,
+  #       radius = 6, stroke = TRUE, weight = 1,
+  #       fillOpacity = 0.9, color = "white",
+  #       fillColor = ~method_cols[method],
+  #       popup = ~popup,
+  #       group = "Sampling locations",
+  #       options = pathOptions(pane = "points")
+  #     ) %>%
+  #     fitBounds(lng1, lat1, lng2, lat2)
+  # }, ignoreInit = FALSE)
+  # 
+  # # -------------------------
+  # # 3) LENGTH TAB: DUMMY HISTOGRAM (length_hist)
+  # # -------------------------
+  # 
+  # length_values_dummy <- reactive({
+  #   # Try likely places for lengths, else dummy random values.
+  #   candidates <- list(
+  #     all_data$bruv_length,
+  #     all_data$dov_length,
+  #     all_data$length,
+  #     all_data$length_data
+  #   )
+  #   
+  #   df <- NULL
+  #   for (x in candidates) {
+  #     if (!is.null(x) && inherits(x, "data.frame") && nrow(x) > 0) { df <- x; break }
+  #   }
+  #   
+  #   if (is.null(df)) {
+  #     return(stats::rnorm(500, mean = 300, sd = 80))
+  #   }
+  #   
+  #   length_col <- dplyr::case_when(
+  #     "length_mm" %in% names(df) ~ "length_mm",
+  #     "Length_mm" %in% names(df) ~ "Length_mm",
+  #     "length"    %in% names(df) ~ "length",
+  #     "Length"    %in% names(df) ~ "Length",
+  #     TRUE ~ NA_character_
+  #   )
+  #   
+  #   if (is.na(length_col)) {
+  #     return(stats::rnorm(500, mean = 300, sd = 80))
+  #   }
+  #   
+  #   v <- suppressWarnings(as.numeric(df[[length_col]]))
+  #   v <- v[is.finite(v)]
+  #   
+  #   if (length(v) < 10) stats::rnorm(500, mean = 300, sd = 80) else v
+  # })
+  # 
+  # output$length_hist <- renderPlot({
+  #   v <- length_values_dummy()
+  #   req(length(v) > 0)
+  #   
+  #   ggplot(data.frame(length_mm = v), aes(x = length_mm)) +
+  #     geom_histogram(bins = 30, colour = "black", linewidth = 0.2) +
+  #     labs(
+  #       title = "Length distribution",
+  #       x = "Length (mm)",
+  #       y = "Count"
+  #     ) +
+  #     theme_minimal(base_size = 12) +
+  #     theme(panel.grid.minor = element_blank())
+  # })
+  
+  # =========================================================
+  # ASSEMBLAGE + RICHNESS + SPECIES (TWO MAPS EACH)  + LENGTH HIST
+  # =========================================================
+  
+  # ---- helpers ----
+  safe_id <- function(x) gsub("[^A-Za-z0-9]+", "_", x)
+  
+  pick_two_methods <- function(pts = NULL) {
+    # prefer methods found in the data; otherwise default to first two in method_cols
+    defaults <- intersect(c("stereo-BRUV", "UVC", "stereo-ROV"), names(method_cols))
+    if (length(defaults) < 2) defaults <- head(names(method_cols), 2)
+    
+    if (!is.null(pts) && "method" %in% names(pts)) {
+      present <- pts %>% dplyr::distinct(method) %>% dplyr::pull(method)
+      present <- intersect(present, names(method_cols))
+      if (length(present) >= 2) return(present[1:2])
+      if (length(present) == 1) return(unique(c(present, defaults))[1:2])
+    }
+    defaults[1:2]
+  }
+  
+  metric_method_to_id <- function(metric, method) paste0(metric, "_", safe_id(method))
+  
+  # ---- function to build 2-map UI ----
+  two_map_ui <- function(metric_key, methods) {
+    bslib::layout_columns(
+      col_widths = c(6, 6),
+      !!!lapply(methods, function(m) {
+        bslib::card(
+          bslib::card_header(m),
+          leafletOutput(metric_method_to_id(metric_key, m), height = "68vh")
+        )
+      })
+    )
+  }
+  
+  # ---- function to render + update 2 maps ----
+  render_two_maps <- function(metric_key,
+                              methods,
+                              pts,
+                              bounds = NULL,
+                              popup_col = NULL,
+                              abundance_col = NULL) {
+    
+    req(length(methods) == 2)
+    
+    if (!is.null(abundance_col) && abundance_col %in% names(pts)) {
+      pts <- pts %>%
+        dplyr::mutate(
+          radius = radius_from_abundance(.data[[abundance_col]])
+        )
+    } else {
+      pts <- pts %>% dplyr::mutate(radius = 6)
+    }
+    
+    lng1 <- min(pts$longitude, na.rm = TRUE)
+    lat1 <- min(pts$latitude,  na.rm = TRUE)
+    lng2 <- max(pts$longitude, na.rm = TRUE)
+    lat2 <- max(pts$latitude,  na.rm = TRUE)
+    req(is.finite(lng1), is.finite(lat1), is.finite(lng2), is.finite(lat2))
+    
+    for (m in methods) {
+      id <- metric_method_to_id(metric_key, m)
+      
+      output[[id]] <- renderLeaflet({
+        base_map() %>%
+          addProviderTiles("Esri.WorldImagery", group = "World Imagery") %>%
+          addTiles(group = "Open Street Map") %>%
+          fitBounds(lng1, lat1, lng2, lat2)
+      })
+      
+      dat_m <- pts %>% dplyr::filter(method == m)
+      
+      leafletProxy(id, data = dat_m) %>%
+        clearGroup("Sampling locations") %>%
+        addCircleMarkers(
+          lng = ~longitude,
+          lat = ~latitude,
+          radius = ~radius,     # ⭐ abundance-scaled
+          stroke = TRUE,
+          weight = 1,
+          fillOpacity = 0.85,
+          color = "white",
+          fillColor = method_cols[[m]],
+          popup = if (!is.null(popup_col) && popup_col %in% names(dat_m))
+            dat_m[[popup_col]] else NULL,
+          group = "Sampling locations",
+          options = pathOptions(pane = "points")
+        )
+    }
+  }
+  
+  # =========================================================
+  # 1) TOTAL ABUNDANCE (TWO MAPS)
+  # =========================================================
+  
+  total_abundance_points_2 <- reactive({
+    req(input$marine_park)
+    
+    df <- all_data$metric_bubble_data %>%
+      dplyr::filter(marine_park %in% input$marine_park, metric %in% "total_abundance") %>%
+      dplyr::rename(latitude = latitude_dd, longitude = longitude_dd) %>%
+      dplyr::filter(!is.na(longitude), !is.na(latitude))
+    
+    # If method isn't present in this dataset, duplicate into 2 methods
+    if (!"method" %in% names(df)) {
+      methods <- pick_two_methods()
+      df <- tidyr::crossing(df, method = methods)
+    } else {
+      # standardise to your method_cols names if needed (optional)
+      df <- df %>%
+        dplyr::mutate(
+          method = dplyr::case_when(
+            stringr::str_detect(tolower(method), "bruv") ~ "stereo-BRUV",
+            stringr::str_detect(tolower(method), "uvc")  ~ "UVC",
+            stringr::str_detect(tolower(method), "rov")  ~ "stereo-ROV",
+            TRUE ~ method
+          )
+        )
+    }
+    
+    df %>%
+      dplyr::mutate(method = ifelse(method %in% names(method_cols), method, pick_two_methods()[1]))
+  })
+  
+  methods_total_abundance_2 <- reactive({
+    pts <- total_abundance_points_2()
+    req(nrow(pts) > 0)
+    pick_two_methods(pts)
+  })
+  
+  output$assemblage_maps_ui <- renderUI({
+    methods <- methods_total_abundance_2()
+    req(length(methods) == 2)
+    two_map_ui("abundance", methods)
+  })
+  
+  observeEvent(
+    list(input$obs_tabs, input$marine_park, total_abundance_points_2()),
+    {
+      if (!identical(input$obs_tabs, "Total abundance")) return()
+      pts <- total_abundance_points_2()
+      req(nrow(pts) > 0)
+      
+      methods <- methods_total_abundance_2()
+      render_two_maps(
+        metric_key = "abundance",
+        methods    = methods,
+        pts        = pts,
+        abundance_col = "value"   # or "total_abundance"
+      )
+    },
+    ignoreInit = TRUE
+  )
+  
+  # =========================================================
+  # 2) SPECIES RICHNESS (TWO MAPS)
+  # =========================================================
+  
+  species_richness_points_2 <- reactive({
+    req(input$marine_park)
+    
+    df_all <- all_data$metric_bubble_data %>%
+      dplyr::filter(marine_park %in% input$marine_park)
+    
+    # find a richness metric if present; fallback to total_abundance so it always draws
+    metric_use <- c("species_richness", "richness", "Species Richness")[
+      c("species_richness", "richness", "Species Richness") %in% unique(df_all$metric)
+    ][1]
+    if (is.na(metric_use) || is.null(metric_use)) metric_use <- "total_abundance"
+    
+    df <- df_all %>%
+      dplyr::filter(metric %in% metric_use) %>%
+      dplyr::rename(latitude = latitude_dd, longitude = longitude_dd) %>%
+      dplyr::filter(!is.na(longitude), !is.na(latitude))
+    
+    if (!"method" %in% names(df)) {
+      methods <- pick_two_methods()
+      df <- tidyr::crossing(df, method = methods)
+    }
+    
+    df %>%
+      dplyr::mutate(method = ifelse(method %in% names(method_cols), method, pick_two_methods()[1]))
+  })
+  
+  methods_richness_2 <- reactive({
+    pts <- species_richness_points_2()
+    req(nrow(pts) > 0)
+    pick_two_methods(pts)
+  })
+  
+  output$richness_maps_ui <- renderUI({
+    methods <- methods_richness_2()
+    req(length(methods) == 2)
+    two_map_ui("richness", methods)
+  })
+  
+  observeEvent(
+    list(input$obs_tabs, input$marine_park, species_richness_points_2()),
+    {
+      if (!identical(input$obs_tabs, "Species Richness")) return()
+      pts <- species_richness_points_2()
+      req(nrow(pts) > 0)
+      
+      methods <- methods_richness_2()
+      render_two_maps(
+        metric_key = "richness",
+        methods    = methods,
+        pts        = pts,
+        abundance_col = "value"   # richness value
+      )
+    },
+    ignoreInit = TRUE
+  )
+  
+  # =========================================================
+  # 3) SPECIES ABUNDANCE (TWO MAPS)  [requires UI change noted above]
+  # =========================================================
+  
+  species_points_2 <- reactive({
+    pts <- map_points()
+    req(nrow(pts) > 0)
+    
+    # ensure method is valid + keep only the two methods we will plot
+    methods <- pick_two_methods(pts)
+    pts %>%
+      dplyr::filter(method %in% methods)
+  })
+  
+  methods_species_2 <- reactive({
+    pts <- species_points_2()
+    req(nrow(pts) > 0)
+    pick_two_methods(pts)
+  })
+  
+  output$species_abundance_maps_ui <- renderUI({
+    methods <- methods_species_2()
+    req(length(methods) == 2)
+    two_map_ui("species", methods)
+  })
+  
+  observeEvent(
+    list(input$obs_tabs, input$marine_park, species_points_2()),
+    {
+      if (!identical(input$obs_tabs, "Investigate a species abundance data")) return()
+      pts <- species_points_2()
+      req(nrow(pts) > 0)
+      
+      pts <- pts %>% dplyr::mutate(abundance = runif(n(), 1, 50))
+      
+      methods <- methods_species_2()
+      render_two_maps(
+        metric_key = "species",
+        methods    = methods,
+        pts        = pts,
+        popup_col  = "popup",
+        abundance_col = "abundance"   # or "count", etc
+      )
+    },
+    ignoreInit = TRUE
+  )
+  
+  # =========================================================
+  # 4) LENGTH HISTOGRAM (MATCH YOUR FACETTED EXAMPLE)
+  #    Facets: columns = Waters (Coastal/Federal), rows = Management (Fished/No-Take)
+  # =========================================================
+  
+  length_df_for_hist <- reactive({
+    req(input$marine_park)
+    
+    # pick a length table you actually have
+    df <- NULL
+    for (x in list(all_data$bruv_length, all_data$dov_length, all_data$length, all_data$length_data)) {
+      if (!is.null(x) && inherits(x, "data.frame") && nrow(x) > 0) { df <- x; break }
+    }
+    if (is.null(df)) {
+      # fallback dummy
+      return(
+        tibble::tibble(
+          marine_park = input$marine_park,
+          length_mm = stats::rnorm(600, mean = 250, sd = 70),
+          method = rep(pick_two_methods(), each = 300),
+          waters = rep(c("Coastal Waters", "Federal Waters"), length.out = 600),
+          management = rep(c("Fished", "No-Take"), each = 300)
+        )
+      )
+    }
+    
+    # detect columns robustly
+    len_col <- c("length_mm", "Length_mm", "length", "Length", "fish_length_mm", "fork_length_mm")
+    len_col <- len_col[len_col %in% names(df)][1]
+    
+    method_col <- c("method", "Method", "sampling_method", "platform")
+    method_col <- method_col[method_col %in% names(df)][1]
+    
+    waters_col <- c("waters", "Waters", "jurisdiction", "Jurisdiction", "realm", "water_type")
+    waters_col <- waters_col[waters_col %in% names(df)][1]
+    
+    mgmt_col <- c("management", "Management", "take", "Take", "zone_type", "ZoneType", "status", "Status", "zone")
+    mgmt_col <- mgmt_col[mgmt_col %in% names(df)][1]
+    
+    out <- df
+    
+    # optional park filter if column exists
+    if ("marine_park" %in% names(out)) out <- out %>% dplyr::filter(marine_park %in% input$marine_park)
+    
+    # build standardised columns
+    out <- out %>%
+      dplyr::mutate(
+        length_mm = suppressWarnings(as.numeric(.data[[len_col]])),
+        method_raw = if (!is.na(method_col)) as.character(.data[[method_col]]) else "stereo-BRUV",
+        waters_raw = if (!is.na(waters_col)) as.character(.data[[waters_col]]) else "Coastal Waters",
+        management_raw = if (!is.na(mgmt_col)) as.character(.data[[mgmt_col]]) else "Fished"
+      ) %>%
+      dplyr::filter(is.finite(length_mm), length_mm > 0)
+    
+    # normalise labels to match your plot
+    out %>%
+      dplyr::mutate(
+        method = dplyr::case_when(
+          stringr::str_detect(tolower(method_raw), "bruv") ~ "stereo-BRUV",
+          stringr::str_detect(tolower(method_raw), "uvc")  ~ "UVC",
+          stringr::str_detect(tolower(method_raw), "rov")  ~ "stereo-ROV",
+          TRUE ~ method_raw
+        ),
+        method = ifelse(method %in% names(method_cols), method, pick_two_methods()[1]),
+        waters = dplyr::case_when(
+          stringr::str_detect(tolower(waters_raw), "federal|commonwealth|offshore") ~ "Federal Waters",
+          TRUE ~ "Coastal Waters"
+        ),
+        management = dplyr::case_when(
+          stringr::str_detect(tolower(management_raw), "no[- ]?take|sanctuary|green") ~ "No-Take",
+          TRUE ~ "Fished"
+        ),
+        waters = factor(waters, levels = c("Coastal Waters", "Federal Waters")),
+        management = factor(management, levels = c("Fished", "No-Take"))
+      )
+  })
+  
+  output$length_hist <- renderPlot({
+    df <- length_df_for_hist()
+    req(nrow(df) > 0)
+    
+    # keep only the two methods you’re displaying elsewhere (for consistency)
+    keep_methods <- pick_two_methods(df)
+    df <- df %>% dplyr::filter(method %in% keep_methods)
+    
+    ggplot(df, aes(x = length_mm, fill = method)) +
+      geom_histogram(
+        bins = 18, colour = "black", linewidth = 0.3,
+        position = "identity", alpha = 0.95
+      ) +
+      facet_grid(management ~ waters, scales = "free_y") +
+      scale_fill_manual(values = method_cols, drop = TRUE) +
+      labs(
+        x = "Length (mm)",
+        y = "Frequency",
+        fill = NULL
+      ) +
+      theme_classic(base_size = 12) +
+      theme(
+        legend.position = "right",
+        strip.background = element_blank(),
+        strip.text = element_text(face = "plain"),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)
+      )
+  })
+  
   
   
   # End of server ----

@@ -52,27 +52,24 @@ ui <- page_navbar(
       
       div(
         navset_card_pill(
+          # ---- TAB 1: Observations ----
           nav_panel(
             title = "Observations:",
-            
             navset_card_tab(
               id = "obs_tabs",
+              
               nav_panel(
                 title = "Sampling effort",
-                
-                
                 layout_column_wrap(
                   min_height = 650,
                   max_height = 800,
                   width = 1/2,
-                  
                   card(
                     min_height = 500,
                     full_screen = TRUE,
                     card_header("Map of Sampling Effort"),
                     leafletOutput("map_methods", height = 450)
                   ),
-                  
                   div(
                     spinnerPlotOutput("plot_effort_year"),
                     spinnerPlotOutput("plot_effort_depth")
@@ -88,66 +85,85 @@ ui <- page_navbar(
               nav_panel(
                 title = "Total abundance",
                 uiOutput("assemblage_maps_ui")
-                
               ),
               
               nav_panel(
                 title = "Species Richness",
                 uiOutput("richness_maps_ui")
-                
               ),
               
               nav_panel(
                 title = "Investigate a species abundance data",
-                spinnerPlotOutput("species_plot", height = 500)
+                # layout_column_wrap(
+                  # width = 1/2,
+                  # min_height = 650,
+                  # max_height = 800,
+                  # card(
+                    # full_screen = TRUE,
+                    # card_header("Map (dummy – hook up later)"),
+                selectizeInput(
+                  "species",
+                  label = NULL,
+                  width = "100%",
+                  choices = "Chrysophrys auratus (Pink snapper)",
+                  selected = "Chrysophrys auratus (Pink snapper)", 
+                  options = list(
+                    placeholder = "Choose a species...",
+                    dropdownHeight = "800px",
+                    maxOptions = 5000
+                  )
+                ),
+                    uiOutput("species_abundance_maps_ui")
+                  # )#,
+                  # card(
+                  #   full_screen = TRUE,
+                  #   card_header("Species abundance plot"),
+                  #   spinnerPlotOutput("species_plot", height = 450)
+                  # )
+                # )
               ),
               
               nav_panel(
                 title = "Length",
-                spinnerPlotOutput("length_plot", height = 500)
+                # layout_column_wrap(
+                #   width = 1/2,
+                #   min_height = 650,
+                #   max_height = 800,
+                #   card(
+                #     full_screen = TRUE,
+                #     card_header("Length plot"),
+                #     spinnerPlotOutput("length_plot", height = 450)
+                #   ),
+                  card(
+                    full_screen = TRUE,
+                    card_header("Length histogram"),
+                    spinnerPlotOutput("length_hist", height = 450)
+                  )
+                # )
               )
               
-            )),
-          nav_panel(title = "State & Trend:", 
-                      
-                    navset_card_tab(
-                      id = "trend_metric_tab",
-                      
-                      nav_panel(
-                        title = "Large Reef Fish Index* (B20*)",
-                        uiOutput("trend_plots_b20_ui"),
-                        uiOutput("b20_blocks_ui")
-                      ),
-                      
-                      nav_panel(
-                        title = "Reef Fish Thermal Index",
-                        uiOutput("trend_plots_rfti_ui"),
-                        uiOutput("rfti_blocks_ui")
-                      )
-                    ),
-                    
-                    
-                    # selectizeInput(
-                    #   "trend_metric",
-                    #   width = "100%",
-                    #   label = NULL,
-                    #   choices = c("Large Reef Fish Index* (B20*)",
-                    #               "Reef Fish Thermal Index"),
-                    #   selected = "Large Reef Fish Index* (B20*)",   # <- pick the first park as default
-                    #   options = list(
-                    #     placeholder = "Choose and indicator metric:",
-                    #     dropdownHeight = "800px",
-                    #     maxOptions = 5000
-                    #   )
-                    # ),
-                    # 
-                    # uiOutput("trend_plots_ui"),
-                    
-                    div())
+            ) # <-- closes navset_card_tab(id="obs_tabs")
+          ),  # <-- closes nav_panel(title="Observations:")
+          
+          # ---- TAB 2: State & Trend ----
+          nav_panel(
+            title = "State & Trend:",
+            navset_card_tab(
+              id = "trend_metric_tab",
+              nav_panel(
+                title = "Large Reef Fish Index* (B20*)",
+                uiOutput("trend_plots_b20_ui"),
+                uiOutput("b20_blocks_ui")
+              ),
+              nav_panel(
+                title = "Reef Fish Thermal Index",
+                uiOutput("trend_plots_rfti_ui"),
+                uiOutput("rfti_blocks_ui")
+              )
+            )
+          )
         )
-      )
-    )
-  ),
+  ))),
   
   nav_panel(
     title = "FishNClips",
